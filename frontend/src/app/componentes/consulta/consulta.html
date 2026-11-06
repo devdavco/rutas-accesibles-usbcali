@@ -1,0 +1,36 @@
+<form class="consulta" (submit)="enviar($event)">
+  <div>
+    <h2 id="titulo-panel" tabindex="-1">Consultar una ruta</h2>
+    <p class="parrafo descripcion">
+      Elija el punto de partida y el destino. La ruta evita las escaleras y llega a la entrada del edificio en el
+      primer piso.
+    </p>
+  </div>
+
+  <app-selector-punto idCampo="origen" etiqueta="Origen" [grupos]="grupos()" [(valor)]="origen" />
+
+  <button type="button" class="enlace pequeno" (click)="intercambiar()">Intercambiar origen y destino</button>
+
+  <app-selector-punto idCampo="destino" etiqueta="Destino" [grupos]="grupos()" [(valor)]="destino" />
+
+  <fieldset class="campo">
+    <legend class="etiqueta">Cómo mostrar el resultado</legend>
+    <div class="segmentado">
+      <label>
+        <input type="radio" name="modo" value="directa" [checked]="modo() === 'directa'" (change)="modo.set('directa')" />
+        Ruta directa
+      </label>
+      <label>
+        <input type="radio" name="modo" value="pasos" [checked]="modo() === 'pasos'" (change)="modo.set('pasos')" />
+        Paso a paso
+      </label>
+    </div>
+  </fieldset>
+
+  <button type="submit" class="btn principal" [disabled]="!puedeCalcular()">Calcular ruta</button>
+
+  <p class="nota">
+    Edificios incluidos: Los Cerezos, Horizontes, Biblioteca, Farallones, El Cedro, El Lago, Higuerones 1 y 2, Los
+    Naranjos, Parque Tecnológico y las dos entradas.
+  </p>
+</form>

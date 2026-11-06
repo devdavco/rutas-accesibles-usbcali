@@ -1,0 +1,73 @@
+@use 'styles/quiebres' as q;
+
+.cuerpo {
+  display: flex;
+  height: calc(100dvh - var(--alto-encabezado));
+
+  @include q.movil {
+    flex-direction: column;
+    height: auto;
+  }
+}
+
+.panel {
+  width: var(--ancho-panel);
+  flex-shrink: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-20);
+  padding: var(--relleno-panel);
+  background: var(--color-superficie);
+  border-right: var(--borde-fino) solid var(--color-borde-sutil);
+
+  .ancho-pasos & {
+    width: var(--ancho-panel-pasos);
+  }
+
+  // Móvil: hoja inferior que se monta sobre el borde del mapa
+  @include q.movil {
+    order: 2;
+    width: 100%;
+    .ancho-pasos & {
+      width: 100%;
+    }
+    overflow: visible;
+    position: relative;
+    margin-top: calc(-1 * var(--radio-16));
+    padding: var(--espacio-20) var(--espacio-16) var(--espacio-24);
+    gap: var(--espacio-16);
+    border-right: none;
+    border-radius: var(--radio-16) var(--radio-16) 0 0;
+    box-shadow: var(--sombra-hoja);
+  }
+}
+
+.asa {
+  display: none;
+
+  @include q.movil {
+    display: block;
+    width: var(--ancho-asa);
+    height: var(--alto-asa);
+    margin-top: calc(-1 * var(--espacio-8));
+    align-self: center;
+    border-radius: var(--radio-6);
+    background: var(--color-borde-control);
+  }
+}
+
+.zona-mapa {
+  flex: 1;
+  min-width: 0;
+
+  @include q.movil {
+    order: 1;
+    flex: none;
+    height: var(--alto-mapa-movil);
+
+    .mapa-bajo & {
+      height: var(--alto-mapa-movil-pasos);
+    }
+  }
+}

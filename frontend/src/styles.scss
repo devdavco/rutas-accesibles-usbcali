@@ -1,1 +1,297 @@
-/* You can add global styles to this file, and also import other style files */
+/* Estilos globales: tokens, fuente, reinicio y componentes base del diseño (docs/diseno/pantallas.html). */
+@use 'styles/quiebres' as q;
+
+@import 'styles/tokens.css';
+@import 'styles/tokens-adicionales.css';
+
+/* Inter servida desde el proyecto (paquete npm), sin CDN */
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  font-family: var(--fuente);
+  font-size: var(--texto-cuerpo);
+  line-height: var(--interlinea-cuerpo);
+  color: var(--color-texto);
+  background: var(--color-fondo);
+}
+
+button,
+input,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+h1 {
+  font-size: var(--texto-titulo-1);
+  line-height: var(--interlinea-titulo-1);
+  font-weight: var(--peso-negrita);
+}
+
+h2 {
+  font-size: var(--texto-titulo-2);
+  line-height: var(--interlinea-titulo-2);
+  font-weight: var(--peso-negrita);
+
+  @include q.movil {
+    font-size: var(--texto-titulo-2-movil);
+  }
+}
+
+h3 {
+  font-size: var(--texto-titulo-3);
+  line-height: var(--interlinea-titulo-3);
+  font-weight: var(--peso-negrita);
+}
+
+/* Foco visible en todo elemento interactivo */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--foco);
+  border-radius: var(--radio-6);
+}
+
+/* Los títulos reciben el foco por programa al cambiar de vista (para lectores de pantalla);
+   no son controles, así que no muestran el anillo de foco */
+[tabindex='-1']:focus-visible {
+  box-shadow: none;
+}
+
+/* Solo para lectores de pantalla */
+.solo-lector {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.parrafo {
+  font-size: var(--texto-secundario);
+  line-height: var(--interlinea-secundario);
+  color: var(--color-texto-secundario);
+}
+
+.ayuda {
+  font-size: var(--texto-ayuda);
+  line-height: var(--interlinea-ayuda);
+  color: var(--color-texto-secundario);
+}
+
+/* Enlaces y botones con aspecto de enlace: área táctil de 44 px */
+.enlace {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--area-tactil);
+  align-self: flex-start;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-primario);
+  font-size: var(--texto-secundario);
+  font-weight: var(--peso-seminegrita);
+  text-decoration: underline;
+  text-underline-offset: var(--separacion-subrayado);
+
+  &.pequeno {
+    font-size: var(--texto-nota);
+  }
+}
+
+/* Campos */
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-6);
+  border: none;
+}
+
+.etiqueta {
+  font-size: var(--texto-secundario);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+}
+
+/* Control segmentado (radios nativos) */
+.segmentado {
+  display: flex;
+  gap: var(--relleno-segmento);
+  padding: var(--relleno-segmento);
+  border: var(--borde-fino) solid var(--color-borde-control);
+  border-radius: var(--radio-8);
+  background: var(--color-fondo);
+
+  label {
+    flex: 1;
+    min-height: var(--alto-segmento);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radio-6);
+    font-size: var(--texto-secundario);
+    font-weight: var(--peso-seminegrita);
+    cursor: pointer;
+  }
+
+  input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  label:has(input:checked) {
+    background: var(--color-primario);
+    color: var(--color-sobre-primario);
+  }
+
+  label:has(input:focus-visible) {
+    box-shadow: var(--foco);
+  }
+}
+
+/* Botones */
+.btn {
+  min-height: var(--alto-control);
+  border-radius: var(--radio-8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--espacio-20);
+  font-size: var(--texto-cuerpo);
+  font-weight: var(--peso-seminegrita);
+  border: var(--borde-boton) solid transparent;
+  cursor: pointer;
+
+  &:focus-visible {
+    box-shadow: var(--foco);
+    border-radius: var(--radio-8);
+  }
+
+  &.principal {
+    background: var(--color-primario);
+    color: var(--color-sobre-primario);
+
+    &:hover:not(:disabled) {
+      background: var(--color-primario-oscuro);
+    }
+  }
+
+  &.secundario {
+    background: var(--color-superficie);
+    color: var(--color-primario);
+    border-color: var(--color-primario);
+
+    &:hover:not(:disabled) {
+      background: var(--color-primario-suave);
+    }
+  }
+
+  &:disabled,
+  &[aria-disabled='true'] {
+    background: var(--color-deshabilitado-fondo);
+    color: var(--color-deshabilitado-texto);
+    border-color: transparent;
+    cursor: not-allowed;
+  }
+}
+
+/* Mensajes */
+.nota {
+  background: var(--color-primario-suave);
+  border-radius: var(--radio-8);
+  padding: var(--espacio-12) var(--espacio-14);
+  font-size: var(--texto-nota);
+  line-height: var(--interlinea-nota);
+  color: var(--color-primario-oscuro);
+}
+
+.alerta {
+  background: var(--color-error-suave);
+  border: var(--borde-fino) solid var(--color-error);
+  border-left-width: var(--borde-alerta);
+  border-radius: var(--radio-8);
+  padding: var(--espacio-14) var(--espacio-16);
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-6);
+
+  strong {
+    color: var(--color-error);
+    font-size: var(--texto-cuerpo);
+  }
+
+  p {
+    font-size: var(--texto-nota);
+    line-height: var(--interlinea-nota);
+    color: var(--color-texto);
+  }
+}
+
+/* Etiqueta de condición del tramo */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  height: var(--alto-chip);
+  padding: 0 var(--espacio-10);
+  border-radius: var(--radio-12);
+  font-size: var(--texto-chip);
+  font-weight: var(--peso-negrita);
+  color: var(--color-sobre-primario);
+  white-space: nowrap;
+
+  &.plano { background: var(--color-plano); }
+  &.rampa { background: var(--color-rampa); }
+  &.pendiente-fuerte { background: var(--color-pendiente); }
+  &.escaleras { background: var(--color-escaleras); }
+}
+
+/* Etiquetas de edificio y de origen/destino sobre el mapa (marcadores HTML) */
+.pastilla-mapa {
+  padding: var(--espacio-2) var(--espacio-12);
+  border-radius: var(--radio-12);
+  background: var(--color-superficie);
+  border: var(--borde-fino) solid var(--color-borde-control);
+  font-size: var(--texto-chip);
+  font-weight: var(--peso-medio);
+  color: var(--color-texto);
+  white-space: nowrap;
+  pointer-events: none;
+
+  &.origen,
+  &.destino {
+    border: none;
+    padding: var(--espacio-4) var(--espacio-20);
+    font-size: var(--texto-nota);
+    font-weight: var(--peso-seminegrita);
+    color: var(--color-sobre-primario);
+  }
+
+  &.origen { background: var(--color-primario); }
+  &.destino { background: var(--color-texto); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0s !important;
+    animation-duration: 0s !important;
+  }
+}

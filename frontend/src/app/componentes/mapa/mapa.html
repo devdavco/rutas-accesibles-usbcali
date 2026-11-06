@@ -1,0 +1,37 @@
+<section class="zona" aria-label="Mapa del campus">
+  <div #contenedor class="lienzo" [class.solo-plano]="soloPlano()"></div>
+
+  @if (error()) {
+    <p class="aviso">No se pudo cargar el mapa. La ruta y sus indicaciones siguen disponibles en el panel.</p>
+  }
+
+  <div class="controles">
+    <button type="button" class="boton-mapa" (click)="acercar()">Acercar</button>
+    <button type="button" class="boton-mapa" (click)="alejar()">Alejar</button>
+    <button type="button" class="boton-mapa" [attr.aria-pressed]="soloPlano()" (click)="alternarSoloPlano()">
+      Solo plano
+    </button>
+  </div>
+
+  <div class="leyenda">
+    @if (vista() === 'pasos') {
+      <p class="titulo-leyenda">Estado de cada punto</p>
+      <ul>
+        @for (estado of estados; track estado.etiqueta) {
+          <li><span class="muestra-punto" [style.background]="'var(' + estado.variable + ')'"></span>{{ estado.etiqueta }}</li>
+        }
+      </ul>
+    } @else {
+      <p class="titulo-leyenda">Leyenda</p>
+      <ul>
+        <li><span class="muestra-linea"></span>Ruta accesible</li>
+        <li><span class="muestra-punto entrada"></span>Entrada de edificio</li>
+      </ul>
+    }
+  </div>
+
+  <p class="atribucion">
+    <!-- &ngsp; conserva el espacio entre enlaces (Angular quita los espacios entre elementos) -->
+    <a href="https://openfreemap.org">© OpenFreeMap</a>&ngsp;<a href="https://openmaptiles.org">© OpenMapTiles</a>&ngsp;<a href="https://www.openstreetmap.org/copyright">© colaboradores de OpenStreetMap</a>
+  </p>
+</section>

@@ -1,0 +1,23 @@
+<div class="campo">
+  <label class="etiqueta" [for]="idCampo()">{{ etiqueta() }}</label>
+  <div class="selector">
+    <select [id]="idCampo()" (change)="cambiar($event)">
+      <option value="" [selected]="valor() === null">Elija un punto</option>
+      @for (grupo of grupos(); track grupo.etiqueta) {
+        <optgroup [label]="grupo.etiqueta">
+          @for (punto of grupo.puntos; track punto.id) {
+            <option [value]="punto.id" [selected]="punto.id === valor()">{{ punto.nombre }}</option>
+          }
+        </optgroup>
+      }
+    </select>
+    <span class="apariencia" aria-hidden="true">
+      @if (seleccionado(); as nombre) {
+        <span class="texto">{{ nombre.principal }}@if (nombre.detalle) {<small> · {{ nombre.detalle }}</small>}</span>
+      } @else {
+        <span class="texto vacio">Elija un punto</span>
+      }
+      <span class="cambiar">Cambiar</span>
+    </span>
+  </div>
+</div>

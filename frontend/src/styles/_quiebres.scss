@@ -1,0 +1,8 @@
+// Las variables CSS no se pueden usar en @media: el punto de quiebre vive aquí.
+$movil: 767px;
+
+@mixin movil {
+  @media (max-width: $movil) {
+    @content;
+  }
+}

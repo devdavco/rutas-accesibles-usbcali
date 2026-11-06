@@ -1,0 +1,16 @@
+.sin-ruta,
+.seleccion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-20);
+}
+
+.valor {
+  min-height: var(--alto-control);
+  display: flex;
+  align-items: center;
+  padding: 0 var(--espacio-14);
+  border: var(--borde-fino) solid var(--color-borde-sutil);
+  border-radius: var(--radio-8);
+  background: var(--color-fondo);
+}

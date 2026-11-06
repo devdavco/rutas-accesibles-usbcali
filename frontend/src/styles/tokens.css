@@ -1,0 +1,39 @@
+/* Copia literal de docs/diseno/tokens.css (fuente del diseño). No editar aquí: actualizar el diseño y volver a copiar. */
+:root {
+  --color-primario: #1D4ED8;
+  --color-primario-oscuro: #1E3A8A;
+  --color-texto: #1F2937;
+  --color-texto-secundario: #4B5563;
+  --color-borde-control: #64748B;
+  --color-borde-sutil: #E2E8F0;
+  --color-fondo: #F8FAFC;
+  --color-superficie: #FFFFFF;
+  --color-primario-suave: #EFF6FF;
+  --color-plano: #15803D;
+  --color-rampa: #7C3AED;
+  --color-pendiente: #C2410C;
+  --color-escaleras: #B91C1C;
+  --color-error: #B91C1C;
+  --color-error-suave: #FEF2F2;
+  --color-exito: #15803D;
+  --color-exito-suave: #F0FDF4;
+  --color-dij-definitivo: #15803D;
+  --color-dij-actual: #C2410C;
+  --color-dij-conocido: #A16207;
+  --color-dij-sinvisitar: #64748B;
+  --color-mapa-fondo: #EEF0EA;
+  --espacio-4: 4px;
+  --espacio-8: 8px;
+  --espacio-12: 12px;
+  --espacio-16: 16px;
+  --espacio-20: 20px;
+  --espacio-24: 24px;
+  --espacio-32: 32px;
+  --radio-6: 6px;
+  --radio-8: 8px;
+  --radio-12: 12px;
+  --radio-16: 16px;
+  --area-tactil: 44px;
+  --alto-control: 48px;
+  --fuente: "Inter", system-ui, sans-serif;
+}

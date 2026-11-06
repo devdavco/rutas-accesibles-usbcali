@@ -1,0 +1,86 @@
+<div class="paso-a-paso">
+  <button type="button" class="enlace pequeno" (click)="volver.emit()">Volver al resultado</button>
+
+  <div>
+    <h2 id="titulo-panel" tabindex="-1">Cómo avanza Dijkstra</h2>
+    <p class="parrafo">{{ respuesta().origen.nombre }} hasta {{ respuesta().destino.nombre }}</p>
+  </div>
+
+  <div class="avance">
+    <div class="contador">
+      <span>Iteración {{ indice() + 1 }} de {{ total() }}</span>
+      <span class="porcentaje">{{ textoAvance() }}</span>
+    </div>
+    <div
+      class="barra"
+      role="progressbar"
+      aria-label="Avance del algoritmo"
+      aria-valuemin="1"
+      [attr.aria-valuemax]="total()"
+      [attr.aria-valuenow]="indice() + 1"
+      [attr.aria-valuetext]="'Iteración ' + (indice() + 1) + ' de ' + total()"
+    >
+      <div class="relleno" [style.width.%]="avance() * 100"></div>
+    </div>
+  </div>
+
+  <div class="controles">
+    <!-- aria-disabled en lugar de disabled: el botón conserva el foco del teclado al cambiar de estado -->
+    <button type="button" class="btn secundario" [attr.aria-disabled]="reproduciendo()" (click)="reproducir()">Reproducir</button>
+    <button type="button" class="btn secundario" [attr.aria-disabled]="!reproduciendo()" (click)="pausar()">Pausar</button>
+    <button type="button" class="btn principal" [attr.aria-disabled]="alFinal()" (click)="siguiente()">Paso siguiente</button>
+    <button type="button" class="btn secundario" (click)="reiniciar()">Reiniciar</button>
+  </div>
+
+  <div class="velocidad">
+    <label for="velocidad" class="solo-lector">Velocidad de la reproducción</label>
+    <span aria-hidden="true">Lenta</span>
+    <input
+      id="velocidad"
+      type="range"
+      min="1"
+      max="5"
+      step="1"
+      [value]="velocidad()"
+      [attr.aria-valuetext]="'Velocidad ' + velocidad() + ' de 5'"
+      (input)="cambiarVelocidad($event)"
+    />
+    <span aria-hidden="true">Rápida</span>
+  </div>
+
+  @if (paso(); as p) {
+    <p class="explicacion"><strong>Paso {{ p.numero }}.</strong> {{ p.mensaje }}</p>
+
+    <table>
+      <caption class="solo-lector">Estado de los puntos en el paso {{ p.numero }}</caption>
+      <thead>
+        <tr>
+          <th scope="col">Punto</th>
+          <th scope="col" class="num">Costo</th>
+          <th scope="col">Viene de</th>
+          <th scope="col">Estado</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (fila of filasVisibles(); track fila.id) {
+          <tr [class.actual]="fila.actual">
+            <td>{{ fila.nombre }}</td>
+            <td class="num">{{ numero(fila.costo) }}</td>
+            <td>{{ fila.vieneDe ?? '—' }}</td>
+            <td>
+              <span class="estado"><i [style.background]="colorEstado[fila.estado]"></i>{{ etiquetaEstado[fila.estado] }}</span>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+    @if (hayMasFilas()) {
+      <button type="button" class="enlace pequeno" [attr.aria-expanded]="mostrarTodas()" (click)="mostrarTodas.set(!mostrarTodas())">
+        {{ mostrarTodas() ? 'Mostrar menos puntos' : 'Mostrar los ' + filas().length + ' puntos con costo conocido' }}
+      </button>
+    }
+  }
+
+  <!-- Anuncios para lectores de pantalla (ver la clase) -->
+  <p class="solo-lector" aria-live="polite">{{ anuncio() }}</p>
+</div>

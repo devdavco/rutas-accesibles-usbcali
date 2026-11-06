@@ -1,0 +1,118 @@
+.paso-a-paso {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-16);
+}
+
+.enlace {
+  margin-bottom: calc(-1 * var(--espacio-8));
+}
+
+h2 + .parrafo {
+  margin-top: var(--espacio-4);
+}
+
+.avance {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-12);
+}
+
+.contador {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--texto-nota);
+  font-weight: var(--peso-seminegrita);
+}
+
+.porcentaje {
+  color: var(--color-texto-secundario);
+}
+
+.barra {
+  height: var(--alto-barra);
+  border-radius: var(--radio-6);
+  background: var(--color-borde-sutil);
+  overflow: hidden;
+}
+
+.relleno {
+  height: 100%;
+  background: var(--color-primario);
+}
+
+.controles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--espacio-10);
+
+  .btn {
+    min-height: var(--alto-boton-pasos);
+    font-size: var(--texto-secundario);
+  }
+}
+
+.velocidad {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-10);
+  font-size: var(--texto-ayuda);
+  color: var(--color-texto-secundario);
+
+  input {
+    flex: 1;
+    min-height: var(--area-tactil);
+    accent-color: var(--color-primario);
+  }
+}
+
+.explicacion {
+  border-left: var(--borde-acento) solid var(--color-dij-actual);
+  background: var(--color-revision-suave);
+  border-radius: 0 var(--radio-8) var(--radio-8) 0;
+  padding: var(--espacio-12) var(--espacio-14);
+  font-size: var(--texto-nota);
+  line-height: var(--interlinea-nota);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--texto-nota);
+}
+
+th {
+  text-align: left;
+  font-size: var(--texto-ayuda);
+  font-weight: var(--peso-negrita);
+  color: var(--color-texto-secundario);
+  padding: var(--espacio-8);
+  border-bottom: var(--borde-tabla) solid var(--color-borde-control);
+}
+
+td {
+  padding: var(--espacio-8);
+  border-bottom: var(--borde-fino) solid var(--color-borde-sutil);
+}
+
+.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+tr.actual td {
+  background: var(--color-revision-suave);
+  font-weight: var(--peso-negrita);
+}
+
+.estado {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-6);
+
+  i {
+    width: var(--tamano-muestra-estado);
+    height: var(--tamano-muestra-estado);
+    border-radius: 50%;
+  }
+}

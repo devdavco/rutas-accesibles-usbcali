@@ -1,0 +1,103 @@
+/*
+ * Valores que docs/diseno/pantallas.html usa sin token en tokens.css.
+ * Se nombran aquí para que los componentes no tengan colores ni medidas sueltas.
+ */
+:root {
+  /* Tipografía (tamaño / interlínea) */
+  --texto-titulo-1: 24px;
+  --interlinea-titulo-1: 32px;
+  --texto-titulo-2: 22px;
+  --interlinea-titulo-2: 30px;
+  --texto-titulo-2-movil: 20px;
+  --texto-titulo-3: 16px;
+  --interlinea-titulo-3: 24px;
+  --texto-marca: 18px;
+  --texto-marca-movil: 16px;
+  --texto-cuerpo: 16px;
+  --interlinea-cuerpo: 24px;
+  --texto-secundario: 15px;
+  --interlinea-secundario: 23px;
+  --texto-nota: 14px;
+  --interlinea-nota: 21px;
+  --texto-ayuda: 13px;
+  --interlinea-ayuda: 19px;
+  --texto-chip: 12px;
+  --texto-atribucion: 11px;
+  --interlinea-lista: 22px;
+  --peso-normal: 400;
+  --peso-medio: 500;
+  --peso-seminegrita: 600;
+  --peso-negrita: 700;
+
+  /* Colores derivados del diseño */
+  --color-sobre-primario: #FFFFFF;
+  --color-foco-anillo: #BFDBFE;
+  --color-revision-suave: #FFF7ED;
+  --color-deshabilitado-fondo: var(--color-borde-sutil);
+  --color-deshabilitado-texto: var(--color-borde-control);
+  --color-sombra-fuerte: rgba(15, 23, 42, 0.12);
+  --color-sombra-suave: rgba(15, 23, 42, 0.08);
+  --color-atribucion-fondo: rgba(255, 255, 255, 0.92);
+  --color-tramo-grafo: #94A3B8;
+
+  /* Foco visible (anillo doble del diseño) */
+  --foco: 0 0 0 2px var(--color-superficie), 0 0 0 5px var(--color-primario-oscuro);
+  --foco-campo: 0 0 0 3px var(--color-foco-anillo);
+
+  /* Sombras */
+  --sombra-hoja: 0 -4px 16px var(--color-sombra-fuerte);
+  --sombra-tarjeta: 0 8px 24px var(--color-sombra-suave);
+
+  /* Bordes */
+  --borde-fino: 1px;
+  --borde-boton: 1.5px;
+  --borde-medio: 2px;
+  --borde-tabla: 2px;
+  --borde-acento: 4px;
+  --borde-alerta: 6px;
+
+  /* Espaciados intermedios que usa el diseño (complementan --espacio-4…32) */
+  --espacio-2: 2px;
+  --espacio-6: 6px;
+  --espacio-10: 10px;
+  --espacio-14: 14px;
+  --espacio-40: 40px;
+  --separacion-subrayado: 3px;
+
+  /* Distribución */
+  --alto-encabezado: 64px;
+  --alto-encabezado-movil: 56px;
+  --ancho-panel: 420px;
+  --ancho-panel-pasos: 480px;
+  --relleno-panel: 28px;
+  --relleno-panel-arriba-resultado: 22px;
+  --alto-mapa-movil: 320px;
+  --alto-mapa-movil-pasos: 300px;
+  --ancho-asa: 40px;
+  --alto-asa: 5px;
+  --alto-boton-pasos: 44px;
+  --alto-segmento: 42px;
+  --relleno-segmento: 3px;
+  --alto-chip: 24px;
+  --alto-barra: 8px;
+  --alto-riel: 6px;
+  --tamano-numero-lista: 26px;
+  --tamano-muestra-estado: 10px;
+  --tamano-muestra-punto: 12px;
+  --ancho-muestra-linea: 28px;
+  --alto-muestra-linea: 5px;
+
+  /* Mapa (MapLibre lee estos valores con getComputedStyle) */
+  --mapa-ruta-ancho: 5px;
+  --mapa-ruta-borde-ancho: 9px;
+  --mapa-tramo-ancho: 2.5px;
+  --mapa-tramo-borde-ancho: 5px;
+  --mapa-arbol-ancho: 4px;
+  --mapa-punto-radio: 5px;
+  --mapa-punto-radio-actual: 8px;
+  --mapa-punto-borde: 2px;
+  --mapa-margen-movil-arriba: 100px; /* deja libre la fila de botones y la etiqueta de destino */
+  --mapa-margen-movil-abajo: 90px; /* atribución + borde de la hoja + etiqueta de origen */
+  --mapa-margen-movil-lados: 30px;
+  --mapa-ancho-movil: 767px; /* igual al punto de quiebre de styles/_quiebres.scss */
+}

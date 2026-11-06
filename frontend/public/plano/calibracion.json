@@ -1,0 +1,22 @@
+{
+  "_descripcion": "Esquinas [lng, lat] del plano: superior izquierda, superior derecha, inferior derecha, inferior izquierda. Copiadas de USBCali_Accesible/js/datos.js por backend/herramientas/copiar-plano.mjs.",
+  "imagen": "plano/plano_campus.png",
+  "esquinas": [
+    [
+      -76.54691322,
+      3.34745654
+    ],
+    [
+      -76.53971562,
+      3.34760492
+    ],
+    [
+      -76.5398272,
+      3.34231359
+    ],
+    [
+      -76.54697496,
+      3.34232267
+    ]
+  ]
+}

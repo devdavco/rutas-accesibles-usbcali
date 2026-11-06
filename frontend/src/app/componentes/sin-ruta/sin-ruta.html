@@ -1,0 +1,21 @@
+<div class="sin-ruta">
+  <h2 id="titulo-panel" tabindex="-1">Consultar una ruta</h2>
+
+  <dl class="seleccion">
+    <div class="campo">
+      <dt class="etiqueta">Origen</dt>
+      <dd class="valor">{{ respuesta().origen.nombre }}</dd>
+    </div>
+    <div class="campo">
+      <dt class="etiqueta">Destino</dt>
+      <dd class="valor">{{ respuesta().destino.nombre }}</dd>
+    </div>
+  </dl>
+
+  <div class="alerta" role="alert">
+    <strong>No hay una ruta sin escaleras</strong>
+    <p>{{ respuesta().mensaje }} Pruebe con otra entrada del mismo edificio.</p>
+  </div>
+
+  <button type="button" class="btn principal" (click)="cambiarDestino.emit()">Cambiar destino</button>
+</div>

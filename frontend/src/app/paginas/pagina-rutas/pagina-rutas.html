@@ -1,0 +1,53 @@
+<div class="cuerpo" [class.ancho-pasos]="vista() === 'pasos'" [class.mapa-bajo]="vista() === 'pasos'">
+  <!-- El panel va primero en el documento (orden de foco); en móvil se dibuja debajo del mapa -->
+  <section class="panel" aria-label="Consulta de rutas">
+    <div class="asa" aria-hidden="true"></div>
+
+    @switch (vista()) {
+      @case ('cargando') {
+        <p class="parrafo" aria-busy="true">Calculando ruta…</p>
+      }
+      @case ('resultado') {
+        <app-resultado [respuesta]="ruta.value()!" (nuevaConsulta)="nuevaConsulta()" (verPasos)="cambiarModo('pasos')" />
+      }
+      @case ('pasos') {
+        <app-paso-a-paso
+          [respuesta]="ruta.value()!"
+          [nombres]="nombres()"
+          [(indice)]="indicePaso"
+          (volver)="cambiarModo('directa')"
+        />
+      }
+      @case ('sin-ruta') {
+        <app-sin-ruta [respuesta]="ruta.value()!" (cambiarDestino)="cambiarDestino()" />
+      }
+      @default {
+        <!-- consulta o error: el formulario siempre queda disponible -->
+        @if (mensajeError(); as mensaje) {
+          <div class="alerta" role="alert">
+            <strong>No se pudo completar la consulta</strong>
+            <p>{{ mensaje }}</p>
+          </div>
+          <button type="button" class="btn secundario" (click)="reintentar()">Reintentar</button>
+        }
+        @if (puntos.value(); as lista) {
+          <app-consulta
+            [puntos]="lista"
+            [origenInicial]="origen()"
+            [destinoInicial]="destino()"
+            [modoInicial]="modo()"
+            (calcular)="calcular($event)"
+          />
+        } @else if (puntos.isLoading()) {
+          <p class="parrafo">Cargando puntos del campus…</p>
+        }
+      }
+    }
+
+    <p class="solo-lector" aria-live="polite">{{ anuncio() }}</p>
+  </section>
+
+  <div class="zona-mapa">
+    <app-mapa [vista]="vistaMapa()" [grafo]="grafo.value()" [ruta]="ruta.value()" [paso]="pasoActual()" />
+  </div>
+</div>
