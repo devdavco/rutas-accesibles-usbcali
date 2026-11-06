@@ -9,6 +9,8 @@
  * Salidas (se sobrescriben en cada ejecución):
  *   - servicio-negocio/src/main/resources/db/migration/V3__carga_grafo_prototipo.sql
  *   - servicio-negocio/src/test/resources/prototipo/tramos-prototipo.csv
+ *   - servicio-grafos/src/test/resources/prototipo/tramos-prototipo.csv  (mismo contenido)
+ *   - servicio-grafos/src/test/resources/prototipo/puntos-prototipo.csv
  *
  * Uso (desde backend/):  node herramientas/generar-carga-grafo.mjs [ruta/a/datos.js]
  */
@@ -21,7 +23,12 @@ const dirHerramientas = dirname(fileURLToPath(import.meta.url));
 const dirBackend = resolve(dirHerramientas, '..');
 const rutaDatos = resolve(process.argv[2] ?? resolve(dirBackend, '../../USBCali_Accesible/js/datos.js'));
 const rutaSql = resolve(dirBackend, 'servicio-negocio/src/main/resources/db/migration/V3__carga_grafo_prototipo.sql');
-const rutaCsv = resolve(dirBackend, 'servicio-negocio/src/test/resources/prototipo/tramos-prototipo.csv');
+// Cada módulo tiene su propia copia de los fixtures: un módulo no lee recursos de prueba de otro
+const rutasCsvTramos = [
+  resolve(dirBackend, 'servicio-negocio/src/test/resources/prototipo/tramos-prototipo.csv'),
+  resolve(dirBackend, 'servicio-grafos/src/test/resources/prototipo/tramos-prototipo.csv'),
+];
+const rutaCsvPuntos = resolve(dirBackend, 'servicio-grafos/src/test/resources/prototipo/puntos-prototipo.csv');
 
 // Condiciones del prototipo → condiciones del modelo
 const CONDICIONES = { plano: 'PLANO', rampa: 'RAMPA', pendiente: 'PENDIENTE_FUERTE', escaleras: 'ESCALERAS' };
@@ -54,6 +61,10 @@ for (const id of Object.keys(clasificacion)) {
 const nombres = datos.puntos.map((p) => clasificacion[p.id].nombre);
 const repetidos = nombres.filter((n, i) => nombres.indexOf(n) !== i);
 if (repetidos.length) fallar(`nombres repetidos: ${repetidos.join(', ')}`);
+// Los CSV no usan comillas: un nombre o edificio con coma o comillas los rompería
+for (const c of Object.values(clasificacion)) {
+  if (/[",]/.test(c.nombre + (c.edificio ?? ''))) fallar(`"${c.nombre}" contiene comas o comillas`);
+}
 
 // 3. Validar tramos
 const pares = new Set();
@@ -90,12 +101,23 @@ ${filasTramos.join(',\n')};
 SELECT setval(pg_get_serial_sequence('punto', 'id'), (SELECT max(id) FROM punto));
 `;
 
-// 5. Generar el CSV de referencia para las pruebas (el CI no tiene el repositorio del prototipo)
-const csv = ['desde,hasta,metros,condicion']
+// 5. Generar los CSV de referencia para las pruebas (el CI no tiene el repositorio del prototipo)
+const csvTramos = ['desde,hasta,metros,condicion']
   .concat(datos.tramos.map((t) => `${t.desde},${t.hasta},${t.metros},${CONDICIONES[t.condicion]}`))
   .join('\n') + '\n';
+const csvPuntos = ['id,nombre,tipo,edificio,seleccionable,lat,lng']
+  .concat(datos.puntos.map((p) => {
+    const c = clasificacion[p.id];
+    return `${p.id},${c.nombre},${c.tipo},${c.edificio ?? ''},${c.seleccionable},${p.lat},${p.lng}`;
+  }))
+  .join('\n') + '\n';
 
-writeFileSync(rutaSql, sql);
-mkdirSync(dirname(rutaCsv), { recursive: true });
-writeFileSync(rutaCsv, csv);
-console.log(`Generados ${datos.puntos.length} puntos y ${datos.tramos.length} tramos:\n  ${rutaSql}\n  ${rutaCsv}`);
+const escribir = (ruta, contenido) => {
+  mkdirSync(dirname(ruta), { recursive: true });
+  writeFileSync(ruta, contenido);
+};
+escribir(rutaSql, sql);
+rutasCsvTramos.forEach((ruta) => escribir(ruta, csvTramos));
+escribir(rutaCsvPuntos, csvPuntos);
+console.log(`Generados ${datos.puntos.length} puntos y ${datos.tramos.length} tramos:\n  `
+  + [rutaSql, ...rutasCsvTramos, rutaCsvPuntos].join('\n  '));

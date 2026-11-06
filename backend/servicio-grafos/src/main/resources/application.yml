@@ -1,9 +1,19 @@
 server:
   port: 8082
+  # Las respuestas con pasos de Dijkstra son grandes y muy repetitivas: se comprimen con gzip
+  compression:
+    enabled: true
+    mime-types: application/json,application/problem+json
+    min-response-size: 2KB
 
 spring:
   application:
     name: servicio-grafos
+
+rutas:
+  negocio:
+    # servicio-negocio se consulta directamente, sin pasar por el gateway
+    url: ${NEGOCIO_URL:http://localhost:8081}
 
 management:
   endpoints:

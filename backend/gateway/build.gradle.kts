@@ -7,6 +7,7 @@ dependencies {
 	implementation(libs.spring.boot.starter.actuator)
 	implementation(libs.spring.cloud.starter.gateway.server.webmvc)
 	testImplementation(libs.spring.boot.starter.actuator.test)
+	testImplementation(libs.spring.boot.starter.webmvc.test)
 	testRuntimeOnly(libs.junit.platform.launcher)
 }
 

@@ -14,8 +14,12 @@ node herramientas/generar-carga-grafo.mjs /ruta/a/datos.js     # otra ubicación
 Produce (y sobrescribe):
 
 - `servicio-negocio/src/main/resources/db/migration/V3__carga_grafo_prototipo.sql`
-- `servicio-negocio/src/test/resources/prototipo/tramos-prototipo.csv` (metros y condiciones del
-  prototipo; lo usan las pruebas, porque el CI no tiene el repositorio del prototipo)
+- `servicio-negocio/src/test/resources/prototipo/tramos-prototipo.csv` y una copia en
+  `servicio-grafos/src/test/resources/prototipo/` (metros y condiciones del prototipo)
+- `servicio-grafos/src/test/resources/prototipo/puntos-prototipo.csv` (puntos con nombre corregido,
+  tipo, edificio, alcance y coordenadas; con ellos las pruebas simulan servicio-negocio)
+
+Las pruebas usan estos archivos porque el CI no tiene el repositorio del prototipo.
 
 `clasificacion-puntos.json` define, para cada id del prototipo, el nombre corregido, el tipo
 (`ENTRADA_CAMPUS`, `ENTRADA_EDIFICIO`, `CRUCE`), el edificio y si es `seleccionable` como origen o
@@ -26,3 +30,18 @@ tramo es inválido.
 **Si el prototipo cambia:** actualice `clasificacion-puntos.json` y vuelva a generar. Si V3 ya se
 aplicó en una base que hay que conservar, el cambio va en una migración nueva (V4…), porque editar
 V3 rompe su checksum en Flyway. En una base de desarrollo basta con recrearla.
+
+## generar-referencia-rutas.mjs
+
+Ejecuta el Dijkstra del prototipo (`js/dijkstra.js`, solo lectura, en un contexto aislado) sobre
+su propio grafo para 15 pares origen-destino que cubren las dos entradas del campus y los 10
+edificios del alcance. Guarda la secuencia de puntos, los metros y el costo esperados en
+`servicio-grafos/src/test/resources/prototipo/rutas-esperadas.json`, que usa `RutasPrototipoTest`
+(la prueba de extremo a extremo de la tesis). El código del prototipo no se porta: solo se usa
+como referencia de resultados.
+
+```bash
+cd backend
+node herramientas/generar-referencia-rutas.mjs                          # usa ../../USBCali_Accesible
+node herramientas/generar-referencia-rutas.mjs /ruta/a/USBCali_Accesible
+```

@@ -1,0 +1,34 @@
+# Pruebas manuales con el cliente HTTP de IntelliJ (abrir este archivo y pulsar ▶ en cada petición).
+# Requiere la base de datos y los tres servicios levantados (ver README.md, "Levantar todo para probar").
+
+@gateway = http://localhost:8080
+@negocio = http://localhost:8081
+@grafos = http://localhost:8082
+
+### Salud del gateway
+GET {{gateway}}/actuator/health
+
+### Salud de servicio-negocio
+GET {{negocio}}/actuator/health
+
+### Salud de servicio-grafos
+GET {{grafos}}/actuator/health
+
+### Puntos que se pueden elegir como origen o destino (por el gateway)
+GET {{gateway}}/api/rutas/puntos
+
+### Ruta Entrada Principal (1) → Edificio El Cedro, Entrada Lateral (2), sin pasos
+GET {{gateway}}/api/rutas?origen=1&destino=2
+
+### La misma ruta con los pasos de Dijkstra (respuesta grande; viaja comprimida con gzip)
+GET {{gateway}}/api/rutas?origen=1&destino=2&pasos=true
+Accept-Encoding: gzip
+
+### Error 400: el destino no existe
+GET {{gateway}}/api/rutas?origen=1&destino=999
+
+### Error 400: el destino es un cruce (no se puede elegir)
+GET {{gateway}}/api/rutas?origen=1&destino=4
+
+### Grafo completo que lee servicio-grafos (directo a servicio-negocio, no pasa por el gateway)
+GET {{negocio}}/interno/grafo

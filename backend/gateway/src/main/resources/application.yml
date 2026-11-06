@@ -1,5 +1,11 @@
 server:
   port: 8080
+  # El cliente HTTP del gateway descomprime lo que recibe de los servicios, así que la
+  # compresión gzip hacia el navegador se aplica de nuevo aquí
+  compression:
+    enabled: true
+    mime-types: application/json,application/problem+json
+    min-response-size: 2KB
 
 spring:
   application:
@@ -19,6 +25,11 @@ spring:
               uri: ${GRAFOS_URL:http://localhost:8082}
               predicates:
                 - Path=/api/rutas/**
+
+rutas:
+  cors:
+    # Orígenes del frontend separados por comas (en desarrollo, el servidor de Angular)
+    origenes-permitidos: ${CORS_ORIGENES:http://localhost:4200}
 
 management:
   endpoints:
