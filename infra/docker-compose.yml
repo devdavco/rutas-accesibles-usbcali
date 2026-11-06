@@ -1,0 +1,18 @@
+services:
+  postgis:
+    image: postgis/postgis:18-3.7
+    container_name: rutas-postgis
+    env_file: .env
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - datos-postgis:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  datos-postgis:

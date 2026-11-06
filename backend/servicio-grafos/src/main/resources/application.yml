@@ -1,0 +1,12 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: servicio-grafos
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

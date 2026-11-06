@@ -1,0 +1,27 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: gateway
+  cloud:
+    gateway:
+      server:
+        webmvc:
+          routes:
+            # Administración de puntos y tramos
+            - id: servicio-negocio
+              uri: ${NEGOCIO_URL:http://localhost:8081}
+              predicates:
+                - Path=/api/admin/**
+            # Cálculo de rutas accesibles
+            - id: servicio-grafos
+              uri: ${GRAFOS_URL:http://localhost:8082}
+              predicates:
+                - Path=/api/rutas/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
