@@ -11,6 +11,7 @@ dependencies {
 	implementation(libs.spring.boot.starter.validation)
 	implementation(libs.spring.boot.starter.webmvc)
 	implementation(libs.flyway.database.postgresql)
+	implementation(libs.hibernate.spatial)
 	runtimeOnly(libs.postgresql)
 	testImplementation(libs.spring.boot.starter.actuator.test)
 	testImplementation(libs.spring.boot.starter.data.jpa.test)
