@@ -27,65 +27,6 @@
   color: var(--color-texto-secundario);
 }
 
-.controles,
-.zoom {
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-8);
-}
-
-.controles {
-  position: absolute;
-  top: var(--espacio-16);
-  right: var(--espacio-16);
-
-  // Móvil: Acercar y Alejar como un par unido; "Solo plano" separado debajo
-  @include q.movil {
-    top: var(--espacio-8);
-    right: var(--espacio-8);
-  }
-}
-
-.zoom {
-  @include q.movil {
-    gap: 0;
-
-    .boton-mapa:first-child {
-      border-bottom-left-radius: 0;
-      border-bottom-right-radius: 0;
-    }
-
-    .boton-mapa:last-child {
-      border-top: none;
-      border-top-left-radius: 0;
-      border-top-right-radius: 0;
-    }
-  }
-}
-
-.boton-mapa {
-  min-height: var(--area-tactil);
-  min-width: var(--area-tactil);
-  padding: 0 var(--espacio-16);
-  background: var(--color-superficie);
-  border: var(--borde-fino) solid var(--color-borde-control);
-  border-radius: var(--radio-8);
-  font-size: var(--texto-nota);
-  font-weight: var(--peso-seminegrita);
-  cursor: pointer;
-
-  &[aria-pressed='true'] {
-    background: var(--color-primario-suave);
-    border-color: var(--color-primario);
-    color: var(--color-primario-oscuro);
-  }
-
-  @include q.movil {
-    padding: 0 var(--espacio-12);
-    font-size: var(--texto-ayuda);
-  }
-}
-
 .leyenda {
   position: absolute;
   left: var(--espacio-16);
@@ -140,36 +81,3 @@
   }
 }
 
-.atribucion {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  background: var(--color-atribucion-fondo);
-  font-size: var(--texto-atribucion);
-  color: var(--color-texto-secundario);
-  padding: var(--espacio-2) var(--espacio-8);
-  max-width: 100%;
-  text-align: right;
-
-  a {
-    // Área mínima de 24 px de alto (WCAG 2.5.8): los tres enlaces están muy juntos
-    display: inline-block;
-    min-height: var(--espacio-24);
-    line-height: var(--espacio-24);
-    color: inherit;
-    text-decoration: underline;
-    text-underline-offset: var(--separacion-subrayado);
-    // Mantiene cada mención completa; si no cabe, pasa entera a la línea siguiente
-    white-space: nowrap;
-  }
-
-  // Móvil: una sola línea compacta, por encima del borde de la hoja inferior
-  @include q.movil {
-    bottom: var(--radio-16);
-    white-space: nowrap;
-
-    .largo {
-      display: none;
-    }
-  }
-}

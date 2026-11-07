@@ -1,0 +1,21 @@
+<section class="zona" aria-label="Mapa del grafo">
+  <div #contenedor class="lienzo"></div>
+
+  @if (error()) {
+    <p class="aviso">No se pudo cargar el mapa. Puede editar los tramos y puntos con las listas del panel.</p>
+  }
+
+  <app-controles-mapa [mapa]="mapaListo()" [capasBase]="capasBase()" />
+
+  <div class="leyenda">
+    <p class="titulo-leyenda">Condición del tramo</p>
+    <ul>
+      @for (item of leyenda; track item.condicion) {
+        <li>
+          <span class="muestra-linea" [class.punteada]="item.condicion === 'ESCALERAS'" [style.--color-muestra]="item.color"></span>
+          {{ item.etiqueta }}
+        </li>
+      }
+    </ul>
+  </div>
+</section>

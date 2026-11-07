@@ -1,0 +1,8 @@
+# Configuración de pruebas. Spring Boot carga config/application.yml además del application.yml
+# principal (y con más prioridad), así que aquí solo van los valores propios de las pruebas.
+rutas:
+  jwt:
+    secreto: secreto-de-pruebas-de-al-menos-32-bytes-para-hs256
+  admin:
+    correo: admin@usbcali.edu.co
+    contrasena: clave-de-pruebas

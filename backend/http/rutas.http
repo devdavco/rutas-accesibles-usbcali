@@ -32,3 +32,71 @@ GET {{gateway}}/api/rutas?origen=1&destino=4
 
 ### Grafo completo que lee servicio-grafos (directo a servicio-negocio, no pasa por el gateway)
 GET {{negocio}}/interno/grafo
+
+### ─── Administración (requiere ingresar primero) ─────────────────────────────
+
+### Ingresar como administrador (credenciales de infra/.env). Guarda el token para las siguientes
+POST {{gateway}}/api/admin/autenticacion/ingresar
+Content-Type: application/json
+
+{"correo": "admin@usbcali.edu.co", "contrasena": "<ADMIN_CONTRASENA de infra/.env>"}
+
+> {% client.global.set("token", response.body.token); %}
+
+### Sin token: 401
+GET {{gateway}}/api/admin/puntos
+
+### Listar puntos (incluidos los cruces)
+GET {{gateway}}/api/admin/puntos
+Authorization: Bearer {{token}}
+
+### Crear un punto (cruce)
+POST {{gateway}}/api/admin/puntos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"nombre": "Cruce de prueba", "tipo": "CRUCE", "edificio": null, "seleccionable": false, "lat": 3.3440, "lng": -76.5430}
+
+> {% client.global.set("puntoId", response.body.id); %}
+
+### Mover y renombrar el punto (las longitudes de sus tramos se recalculan)
+PUT {{gateway}}/api/admin/puntos/{{puntoId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"nombre": "Cruce de prueba movido", "tipo": "CRUCE", "edificio": null, "seleccionable": false, "lat": 3.3441, "lng": -76.5430}
+
+### Crear un tramo desde la Entrada Principal (1) hasta el punto nuevo
+POST {{gateway}}/api/admin/tramos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"puntoInicialId": 1, "puntoFinalId": {{puntoId}}, "condicion": "PLANO"}
+
+> {% client.global.set("tramoId", response.body.id); %}
+
+### Cambiar la condición del tramo
+PUT {{gateway}}/api/admin/tramos/{{tramoId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"condicion": "RAMPA"}
+
+### 409: el tramo ya existe (en orden inverso)
+POST {{gateway}}/api/admin/tramos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"puntoInicialId": {{puntoId}}, "puntoFinalId": 1, "condicion": "PLANO"}
+
+### 409: el punto tiene tramos
+DELETE {{gateway}}/api/admin/puntos/{{puntoId}}
+Authorization: Bearer {{token}}
+
+### Eliminar el tramo y luego el punto (deja los datos como estaban)
+DELETE {{gateway}}/api/admin/tramos/{{tramoId}}
+Authorization: Bearer {{token}}
+
+###
+DELETE {{gateway}}/api/admin/puntos/{{puntoId}}
+Authorization: Bearer {{token}}

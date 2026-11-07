@@ -1,0 +1,218 @@
+<div class="cuerpo">
+  <section class="panel" aria-label="Edición del grafo">
+    <h1 class="solo-lector">Editor del grafo</h1>
+
+    <fieldset class="campo">
+      <legend class="solo-lector">Qué editar</legend>
+      <div class="segmentado">
+        <label><input type="radio" name="modo" [checked]="modo() === 'tramos'" (change)="cambiarModo('tramos')" />Tramos</label>
+        <label><input type="radio" name="modo" [checked]="modo() === 'puntos'" (change)="cambiarModo('puntos')" />Puntos</label>
+      </div>
+    </fieldset>
+
+    <div class="fila">
+      @if (modo() === 'tramos') {
+        <button type="button" class="btn secundario" (click)="empezarTramo()">Crear tramo</button>
+      } @else {
+        <button type="button" class="btn secundario" (click)="empezarPunto()">Crear punto</button>
+      }
+      <button type="button" class="btn secundario" [attr.aria-disabled]="!hayCambios()" (click)="cancelar()">Cancelar</button>
+    </div>
+
+    <!-- Alternativa con teclado a hacer clic en el mapa (WCAG 2.1.1) -->
+    <div class="campo">
+      <label class="etiqueta" for="buscar">{{ modo() === 'tramos' ? 'Buscar tramo' : 'Buscar punto' }}</label>
+      <input id="buscar" class="campo-texto" type="search" [value]="busqueda()" (input)="busqueda.set($any($event.target).value)" />
+      <select
+        class="lista"
+        size="6"
+        [attr.aria-label]="modo() === 'tramos' ? 'Lista de tramos' : 'Lista de puntos'"
+        (change)="elegirDeLista($event)"
+      >
+        @for (item of modo() === 'tramos' ? listaTramos() : listaPuntos(); track item.id) {
+          <option [value]="item.id" [selected]="item.id === (tramoActual()?.id ?? puntoActual()?.id)">{{ item.texto }}</option>
+        }
+      </select>
+    </div>
+
+    @if (cargando()) {
+      <p class="parrafo">Cargando el grafo…</p>
+    }
+
+    @switch (seleccion()?.tipo) {
+      @case ('tramo') {
+        <div class="detalle">
+          <p class="etiqueta-seccion">Tramo seleccionado</p>
+          <h2 class="nombre-elemento">{{ nombreTramo(tramoActual()!) }}</h2>
+          <dl class="datos">
+            <div><dt>Longitud (PostGIS)</dt><dd>{{ longitudActual() }}</dd></div>
+            <div><dt>Peso calculado</dt><dd>{{ pesoActual() }}</dd></div>
+          </dl>
+          <ng-container [ngTemplateOutlet]="radiosCondicion" />
+          <div class="fila">
+            <button type="button" class="btn principal" [attr.aria-disabled]="!hayCambios() || guardando()" (click)="hayCambios() && guardarTramo()">Guardar cambios</button>
+            <button type="button" class="btn peligro" (click)="confirmandoEliminar.set(true)">Eliminar</button>
+          </div>
+          <ng-container [ngTemplateOutlet]="confirmacion" [ngTemplateOutletContext]="{ que: 'el tramo ' + nombreTramo(tramoActual()!) }" />
+        </div>
+      }
+      @case ('nuevo-tramo') {
+        <div class="detalle">
+          <p class="etiqueta-seccion">Nuevo tramo</p>
+          <p class="ayuda">Elija los dos puntos en las listas o haciendo clic en el mapa.</p>
+          @for (extremo of [{ id: 'inicial', etiqueta: 'Punto inicial', valor: nuevoInicial() }, { id: 'final', etiqueta: 'Punto final', valor: nuevoFinal() }]; track extremo.id) {
+            <div class="campo">
+              <label class="etiqueta" [for]="'punto-' + extremo.id">{{ extremo.etiqueta }}</label>
+              <select class="campo-texto" [id]="'punto-' + extremo.id" (change)="(extremo.id === 'inicial' ? nuevoInicial : nuevoFinal).set(+$any($event.target).value)">
+                <option value="" [selected]="extremo.valor === null" disabled>Elija un punto</option>
+                @for (p of puntosOrdenados(); track p.id) {
+                  <option [value]="p.id" [selected]="p.id === extremo.valor">{{ p.nombre }}</option>
+                }
+              </select>
+            </div>
+          }
+          <ng-container [ngTemplateOutlet]="radiosCondicion" />
+          <button type="button" class="btn principal" [attr.aria-disabled]="guardando()" (click)="guardarTramo()">Crear tramo</button>
+          <p class="ayuda">La longitud la calcula PostGIS con las coordenadas de los dos puntos.</p>
+        </div>
+      }
+      @case ('punto') {
+        <div class="detalle">
+          <p class="etiqueta-seccion">Punto seleccionado</p>
+          <h2 class="nombre-elemento">{{ puntoActual()!.nombre }}</h2>
+          <p class="ayuda">{{ tramosDelPunto() }} {{ tramosDelPunto() === 1 ? 'tramo llega' : 'tramos llegan' }} a este punto. Puede arrastrarlo en el mapa.</p>
+
+          @if (ubicacionPendiente(); as nueva) {
+            <div class="nota" role="status">
+              <p><strong>Nueva ubicación:</strong> {{ nueva.lat.toFixed(6) }}, {{ nueva.lng.toFixed(6) }}.
+                Al guardarla se recalcula la longitud de {{ tramosDelPunto() === 1 ? 'su tramo' : 'sus ' + tramosDelPunto() + ' tramos' }}.</p>
+              <div class="fila">
+                <button type="button" class="btn principal" [attr.aria-disabled]="guardando()" (click)="guardarUbicacion()">Guardar ubicación</button>
+                <button type="button" class="btn secundario" (click)="ubicacionPendiente.set(null)">Cancelar</button>
+              </div>
+            </div>
+          }
+
+          <ng-container [ngTemplateOutlet]="formularioPunto" />
+          <div class="fila">
+            <button type="button" class="btn principal" [attr.aria-disabled]="!hayCambios() || guardando()" (click)="hayCambios() && guardarPunto()">Guardar cambios</button>
+            <button type="button" class="btn peligro" (click)="confirmandoEliminar.set(true)">Eliminar</button>
+          </div>
+          <ng-container [ngTemplateOutlet]="confirmacion" [ngTemplateOutletContext]="{ que: 'el punto ' + puntoActual()!.nombre }" />
+        </div>
+      }
+      @case ('nuevo-punto') {
+        <div class="detalle">
+          <p class="etiqueta-seccion">Nuevo punto</p>
+          <p class="ayuda">Haga clic en el mapa para ubicarlo (luego puede arrastrarlo) o escriba las coordenadas.</p>
+          <ng-container [ngTemplateOutlet]="formularioPunto" />
+          <button type="button" class="btn principal" [attr.aria-disabled]="guardando()" (click)="guardarPunto()">Crear punto</button>
+        </div>
+      }
+      @default {
+        @if (!cargando()) {
+          <p class="ayuda">
+            Elija un {{ modo() === 'tramos' ? 'tramo' : 'punto' }} en el mapa o en la lista, o pulse
+            «{{ modo() === 'tramos' ? 'Crear tramo' : 'Crear punto' }}».
+          </p>
+        }
+      }
+    }
+
+    @if (error(); as mensajeError) {
+      <div class="alerta" role="alert">
+        <strong>No se pudo completar</strong>
+        <p>{{ mensajeError }}</p>
+      </div>
+    }
+    <!-- Siempre presente para que los lectores de pantalla anuncien "Cambios guardados" -->
+    <div role="status">
+      @if (mensaje(); as texto) {
+        <p class="exito">{{ texto }}</p>
+      }
+    </div>
+
+    <p class="ayuda resumen">{{ resumen() }}</p>
+  </section>
+
+  <div class="zona-mapa">
+    <app-mapa-editor
+      [puntos]="puntos()"
+      [tramos]="tramos()"
+      [tramoSeleccionado]="tramoResaltado()"
+      [puntosResaltados]="puntosResaltados()"
+      [marcador]="marcador()"
+      (elegirTramo)="elegirTramo($event)"
+      (elegirPunto)="elegirPunto($event)"
+      (clicLibre)="clicLibre($event)"
+      (marcadorMovido)="marcadorMovido($event)"
+    />
+  </div>
+</div>
+
+<!-- Condición del tramo, con su chip y factor (pantalla 06) -->
+<ng-template #radiosCondicion>
+  <fieldset class="campo">
+    <legend class="etiqueta">Condición</legend>
+    <div class="opciones">
+      @for (c of condiciones; track c.valor) {
+        <label class="opcion" [class.activa]="condicion() === c.valor">
+          <input type="radio" name="condicion" [value]="c.valor" [checked]="condicion() === c.valor" (change)="condicion.set(c.valor)" />
+          <span [class]="'chip ' + c.valor.toLowerCase().replace('_', '-')">{{ c.valor === 'PENDIENTE_FUERTE' ? 'Pendiente' : etiquetaCondicion[c.valor] }}</span>
+          <span>{{ c.descripcion }}</span>
+        </label>
+      }
+    </div>
+  </fieldset>
+</ng-template>
+
+<ng-template #formularioPunto>
+  <div class="formulario">
+    <div class="campo">
+      <label class="etiqueta" for="nombre-punto">Nombre</label>
+      <input id="nombre-punto" class="campo-texto" maxlength="120" [value]="formPunto().nombre" (input)="cambiarCampo('nombre', $event)" />
+    </div>
+    <div class="campo">
+      <label class="etiqueta" for="tipo-punto">Tipo</label>
+      <select id="tipo-punto" class="campo-texto" (change)="cambiarTipo($event)">
+        @for (t of tipos; track t.valor) {
+          <option [value]="t.valor" [selected]="formPunto().tipo === t.valor">{{ t.etiqueta }}</option>
+        }
+      </select>
+    </div>
+    @if (formPunto().tipo === 'ENTRADA_EDIFICIO') {
+      <div class="campo">
+        <label class="etiqueta" for="edificio-punto">Edificio</label>
+        <input id="edificio-punto" class="campo-texto" maxlength="60" [value]="formPunto().edificio ?? ''" (input)="cambiarCampo('edificio', $event)" />
+      </div>
+    }
+    <label class="casilla">
+      <input type="checkbox" [checked]="formPunto().seleccionable" [disabled]="formPunto().tipo === 'CRUCE'" (change)="cambiarSeleccionable($event)" aria-describedby="ayuda-seleccionable" />
+      Se puede elegir como origen o destino
+    </label>
+    <p class="ayuda" id="ayuda-seleccionable">Desmárquelo para los destinos fuera del alcance. Un cruce nunca se puede elegir.</p>
+    <div class="fila">
+      <div class="campo">
+        <label class="etiqueta" for="lat-punto">Latitud</label>
+        <input id="lat-punto" class="campo-texto" type="number" step="0.000001" [value]="formPunto().lat" (change)="cambiarCampo('lat', $event)" />
+      </div>
+      <div class="campo">
+        <label class="etiqueta" for="lng-punto">Longitud</label>
+        <input id="lng-punto" class="campo-texto" type="number" step="0.000001" [value]="formPunto().lng" (change)="cambiarCampo('lng', $event)" />
+      </div>
+    </div>
+  </div>
+</ng-template>
+
+<!-- Confirmación antes de eliminar -->
+<ng-template #confirmacion let-que="que">
+  @if (confirmandoEliminar()) {
+    <div class="alerta" role="alertdialog" aria-labelledby="titulo-confirmar">
+      <strong id="titulo-confirmar">¿Eliminar {{ que }}?</strong>
+      <div class="fila">
+        <button type="button" class="btn peligro" [attr.aria-disabled]="guardando()" (click)="eliminar()">Sí, eliminar</button>
+        <button type="button" class="btn secundario" (click)="confirmandoEliminar.set(false)">No eliminar</button>
+      </div>
+    </div>
+  }
+</ng-template>

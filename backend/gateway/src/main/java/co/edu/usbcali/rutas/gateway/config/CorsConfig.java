@@ -21,7 +21,8 @@ public class CorsConfig {
 		CorsConfiguration configuracion = new CorsConfiguration();
 		configuracion.setAllowedOrigins(origenesPermitidos.stream().map(String::trim).toList());
 		configuracion.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-		configuracion.setAllowedHeaders(List.of("*"));
+		// Encabezados que envía el frontend: el token del administrador y el tipo del cuerpo
+		configuracion.setAllowedHeaders(List.of("Authorization", "Content-Type"));
 		configuracion.setMaxAge(3600L);
 
 		UrlBasedCorsConfigurationSource fuente = new UrlBasedCorsConfigurationSource();

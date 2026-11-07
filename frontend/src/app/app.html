@@ -1,9 +1,23 @@
 <header class="encabezado">
   <a class="marca" routerLink="/">
     <span class="nombre">Rutas accesibles USB Cali</span>
-    <span class="campus">Campus Universidad de San Buenaventura Cali</span>
+    <span class="campus">{{ seccion() === 'editor' ? 'Editor del grafo' : 'Campus Universidad de San Buenaventura Cali' }}</span>
   </a>
-  <a class="enlace" routerLink="/admin">Ingreso administrador</a>
+  @switch (seccion()) {
+    @case ('editor') {
+      <div class="cuenta">
+        <span class="correo">{{ sesion.correo() }}</span>
+        <span aria-hidden="true">·</span>
+        <button type="button" class="enlace" (click)="cerrarSesion()">Cerrar sesión</button>
+      </div>
+    }
+    @case ('ingreso') {
+      <a class="enlace" routerLink="/">Volver a la consulta de rutas</a>
+    }
+    @default {
+      <a class="enlace solo-escritorio" routerLink="/admin/ingresar">Ingreso administrador</a>
+    }
+  }
 </header>
 <main>
   <router-outlet />

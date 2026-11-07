@@ -8,7 +8,6 @@ import {
   effect,
   inject,
   input,
-  isDevMode,
   signal,
   viewChild,
 } from '@angular/core';
@@ -23,21 +22,12 @@ import { GrafoVisual, PasoDijkstra, PuntoVisual, RespuestaRuta } from '../../api
 import { EstadoPunto, ETIQUETA_ESTADO, estadoDePunto } from '../../dominio/estado-punto';
 import { nombreVisible, separarNombre } from '../../dominio/formato';
 import { Ancla, Rect, desplazamiento, elegirAncla, rectEtiqueta } from '../../dominio/etiquetas';
-import { mitadesDelPlano } from '../../dominio/plano';
 import { Pantalla } from '../../servicios/pantalla';
+import { ControlesMapa } from './controles-mapa';
+import { COLECCION_VACIA, Coordenada, crearMapaCampus, duracion, medida, token } from './mapa-campus';
 
 /** Qué dibuja el mapa: entradas y etiquetas, una ruta, o el avance de Dijkstra. */
 export type VistaMapa = 'consulta' | 'resultado' | 'pasos';
-
-interface Calibracion {
-  imagen: string;
-  esquinas: [[number, number], [number, number], [number, number], [number, number]];
-}
-
-const ESTILO_BASE = 'https://tiles.openfreemap.org/styles/positron';
-
-/** Margen alrededor del plano dentro del cual se puede mover la vista (grados). */
-const MARGEN_VISTA = 0.004;
 
 const VARIABLE_ESTADO: Record<EstadoPunto, string> = {
   DEFINITIVO: '--color-dij-definitivo',
@@ -46,12 +36,6 @@ const VARIABLE_ESTADO: Record<EstadoPunto, string> = {
   SIN_VISITAR: '--color-dij-sinvisitar',
 };
 
-type Coordenada = [number, number];
-
-/** Píxeles que cada mitad del plano se extiende más allá de la diagonal que las separa. */
-const SOLAPE_PX = 2;
-
-const COLECCION_VACIA: FeatureCollection = { type: 'FeatureCollection', features: [] };
 
 /**
  * Mapa del campus: mapa base de OpenFreeMap atenuado, plano del campus superpuesto y las
@@ -61,6 +45,7 @@ const COLECCION_VACIA: FeatureCollection = { type: 'FeatureCollection', features
   selector: 'app-mapa',
   templateUrl: './mapa.html',
   styleUrl: './mapa.scss',
+  imports: [ControlesMapa],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Mapa {
@@ -69,8 +54,10 @@ export class Mapa {
   readonly ruta = input<RespuestaRuta>();
   readonly paso = input<PasoDijkstra>();
 
-  protected readonly soloPlano = signal(false);
   protected readonly error = signal(false);
+  /** El mapa ya creado, para los controles. */
+  protected readonly mapaListo = signal<MapaLibre | undefined>(undefined);
+  protected readonly capasBase = signal<string[]>([]);
   protected readonly estados = Object.entries(ETIQUETA_ESTADO).map(([estado, etiqueta]) => ({
     etiqueta,
     variable: VARIABLE_ESTADO[estado as EstadoPunto],
@@ -80,7 +67,6 @@ export class Mapa {
   private readonly cargado = signal(false);
   private mapa?: MapaLibre;
   private crearMarcador?: (elemento: HTMLElement, opciones: ConstructorParameters<typeof Marker>[0]) => Marker;
-  private capasBase: string[] = [];
   private limitesCampus?: [[number, number], [number, number]];
   private marcadores: Marker[] = [];
   /** Etiquetas de los extremos de la ruta; en móvil se recolocan cada vez que el mapa se mueve. */
@@ -88,7 +74,6 @@ export class Mapa {
   private lineaExtremos: Coordenada[] = [];
   private marcadoresExtremos: Marker[] = [];
 
-  private readonly sinMovimiento = matchMedia('(prefers-reduced-motion: reduce)').matches;
   private readonly esMovil = inject(Pantalla).esMovil;
   /** Lo último que se encuadró, para volver a encuadrar si cambia el tamaño del mapa. */
   private ultimoEncuadre?: { vista: VistaMapa; linea?: Coordenada[] };
@@ -116,130 +101,39 @@ export class Mapa {
     });
   }
 
-  protected acercar(): void {
-    this.mapa?.zoomIn({ duration: this.duracion() });
-  }
-
-  protected alejar(): void {
-    this.mapa?.zoomOut({ duration: this.duracion() });
-  }
-
-  /** Oculta o muestra el mapa base; el plano del campus siempre queda visible. */
-  protected alternarSoloPlano(): void {
-    this.soloPlano.update((v) => !v);
-    for (const id of this.capasBase) {
-      this.mapa?.setLayoutProperty(id, 'visibility', this.soloPlano() ? 'none' : 'visible');
-    }
-  }
-
   private async iniciar(): Promise<void> {
     try {
-      // MapLibre se carga bajo demanda: no pesa en el arranque de la página
-      const [maplibre, calibracion] = await Promise.all([
-        import('maplibre-gl'),
-        fetch('plano/calibracion.json').then((r) => r.json() as Promise<Calibracion>),
-      ]);
-      const imagenPlano = new Image();
-      imagenPlano.src = calibracion.imagen;
-      const planoListo = imagenPlano.decode();
-      maplibre.setWorkerUrl(new URL('maplibre/maplibre-gl-worker.mjs', document.baseURI).href);
-      this.crearMarcador = (elemento, opciones) => new maplibre.Marker({ ...opciones, element: elemento });
-
-      const lngs = calibracion.esquinas.map((e) => e[0]);
-      const lats = calibracion.esquinas.map((e) => e[1]);
-      this.limitesCampus = [
-        [Math.min(...lngs), Math.min(...lats)],
-        [Math.max(...lngs), Math.max(...lats)],
-      ];
-      const [[oeste, sur], [este, norte]] = this.limitesCampus;
-
-      const mapa = new maplibre.Map({
-        container: this.contenedor().nativeElement,
-        style: ESTILO_BASE,
-        bounds: this.limitesCampus,
-        maxBounds: [
-          [oeste - MARGEN_VISTA, sur - MARGEN_VISTA],
-          [este + MARGEN_VISTA, norte + MARGEN_VISTA],
-        ],
-        attributionControl: false, // la atribución se muestra como texto propio (ver plantilla)
-        dragRotate: false,
-        pitchWithRotate: false,
-        fadeDuration: this.sinMovimiento ? 0 : 300,
-      });
+      const base = await crearMapaCampus(
+        this.contenedor().nativeElement,
+        'Mapa del campus. La información de la ruta está en el panel.',
+      );
+      const mapa = base.mapa;
       this.mapa = mapa;
-      if (isDevMode()) {
-        // Solo en desarrollo: permite inspeccionar el mapa desde la consola o con Playwright
-        (window as unknown as { mapaRutas?: MapaLibre }).mapaRutas = mapa;
-      }
-      mapa.getCanvas().setAttribute('aria-label', 'Mapa del campus. La información de la ruta está en el panel.');
-      mapa.touchZoomRotate.disableRotation();
-
-      mapa.on('load', async () => {
-        this.capasBase = mapa.getStyle().layers.map((capa) => capa.id);
-        mapa.setMinZoom(mapa.getZoom() - 0.5);
-        await planoListo;
-        this.agregarPlano(imagenPlano, calibracion.esquinas);
-        this.agregarCapas();
-        new ResizeObserver(() => {
-          mapa.resize();
-          // En móvil la hoja puede ampliar o reducir el mapa: la ruta debe seguir completa a la vista
-          if (this.esMovil() && this.ultimoEncuadre) {
-            this.encuadrar(this.ultimoEncuadre.vista, this.ultimoEncuadre.linea);
-          }
-        }).observe(this.contenedor().nativeElement);
-        this.cargado.set(true);
-      });
+      this.crearMarcador = base.crearMarcador;
+      this.limitesCampus = base.limites;
+      this.agregarCapas();
+      new ResizeObserver(() => {
+        mapa.resize();
+        // En móvil la hoja puede ampliar o reducir el mapa: la ruta debe seguir completa a la vista
+        if (this.esMovil() && this.ultimoEncuadre) {
+          this.encuadrar(this.ultimoEncuadre.vista, this.ultimoEncuadre.linea);
+        }
+      }).observe(this.contenedor().nativeElement);
       mapa.on('moveend', () => {
         if (this.esMovil() && this.extremos.length > 0) this.colocarExtremos();
       });
-      mapa.on('error', (evento) => console.error('Error del mapa', evento.error));
+      this.capasBase.set(base.capasBase);
+      this.mapaListo.set(mapa);
+      this.cargado.set(true);
     } catch (e) {
       console.error('No se pudo iniciar el mapa', e);
       this.error.set(true);
     }
   }
 
-  /**
-   * El plano se dibuja como dos mitades triangulares para colocarlo igual que el prototipo
-   * (MapLibre 5), con el que se calibraron las esquinas. Ver dominio/plano.ts.
-   */
-  private agregarPlano(imagen: HTMLImageElement, esquinas: Calibracion['esquinas']): void {
-    const ancho = imagen.naturalWidth;
-    const alto = imagen.naturalHeight;
-    // Cada triángulo se extiende un poco más allá de la diagonal para que no quede una costura
-    // (en la diagonal las dos mitades coinciden). La normal apunta hacia abajo a la derecha.
-    const largo = Math.hypot(ancho, alto);
-    const normal: [number, number] = [(alto / largo) * SOLAPE_PX, (ancho / largo) * SOLAPE_PX];
-
-    for (const mitad of mitadesDelPlano(esquinas)) {
-      const lienzo = document.createElement('canvas');
-      lienzo.width = ancho;
-      lienzo.height = alto;
-      const ctx = lienzo.getContext('2d')!;
-      const [a, b, c] = mitad.triangulo.map(([x, y]) => [x * ancho, y * alto]);
-      const mas = ([x, y]: number[]) => [x + normal[0], y + normal[1]];
-      const menos = ([x, y]: number[]) => [x - normal[0], y - normal[1]];
-      // Contorno en orden: el triángulo más una franja angosta al otro lado de la diagonal
-      const contorno =
-        mitad.id === 'plano-superior'
-          ? [a, b, mas(b), mas(c), c] // diagonal b → c, franja hacia abajo a la derecha
-          : [menos(a), a, b, c, menos(c)]; // diagonal a → c, franja hacia arriba a la izquierda
-      ctx.beginPath();
-      for (const [x, y] of contorno) {
-        ctx.lineTo(x, y);
-      }
-      ctx.closePath();
-      ctx.clip();
-      ctx.drawImage(imagen, 0, 0);
-
-      this.mapa!.addSource(mitad.id, { type: 'canvas', canvas: lienzo, coordinates: mitad.esquinas, animate: false });
-      this.mapa!.addLayer({ id: mitad.id, type: 'raster', source: mitad.id, paint: { 'raster-fade-duration': 0 } });
-    }
-  }
-
   private agregarCapas(): void {
     const mapa = this.mapa!;
-    const blanco = this.token('--color-superficie');
+    const blanco = token('--color-superficie');
 
     for (const fuente of ['tramos', 'arbol', 'ruta', 'puntos']) {
       mapa.addSource(fuente, { type: 'geojson', data: COLECCION_VACIA });
@@ -249,29 +143,29 @@ export class Mapa {
     mapa.addLayer({
       id: 'tramos-borde', type: 'line', source: 'tramos',
       layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': blanco, 'line-width': this.medida('--mapa-tramo-borde-ancho') },
+      paint: { 'line-color': blanco, 'line-width': medida('--mapa-tramo-borde-ancho') },
     });
     mapa.addLayer({
       id: 'tramos', type: 'line', source: 'tramos',
       layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': this.token('--color-tramo-grafo'), 'line-width': this.medida('--mapa-tramo-ancho') },
+      paint: { 'line-color': token('--color-tramo-grafo'), 'line-width': medida('--mapa-tramo-ancho') },
     });
     // Árbol de predecesores del paso actual, coloreado por el estado de cada punto
     mapa.addLayer({
       id: 'arbol', type: 'line', source: 'arbol',
       layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': ['get', 'color'], 'line-width': this.medida('--mapa-arbol-ancho') },
+      paint: { 'line-color': ['get', 'color'], 'line-width': medida('--mapa-arbol-ancho') },
     });
     // Ruta encontrada: línea del color primario con borde blanco
     mapa.addLayer({
       id: 'ruta-borde', type: 'line', source: 'ruta',
       layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': blanco, 'line-width': this.medida('--mapa-ruta-borde-ancho') },
+      paint: { 'line-color': blanco, 'line-width': medida('--mapa-ruta-borde-ancho') },
     });
     mapa.addLayer({
       id: 'ruta', type: 'line', source: 'ruta',
       layout: { 'line-cap': 'round', 'line-join': 'round' },
-      paint: { 'line-color': this.token('--color-primario'), 'line-width': this.medida('--mapa-ruta-ancho') },
+      paint: { 'line-color': token('--color-primario'), 'line-width': medida('--mapa-ruta-ancho') },
     });
     // Puntos: entradas (consulta y resultado) o todos los puntos con su estado (paso a paso)
     mapa.addLayer({
@@ -280,7 +174,7 @@ export class Mapa {
         'circle-color': ['get', 'color'],
         'circle-radius': ['get', 'radio'],
         'circle-stroke-color': blanco,
-        'circle-stroke-width': this.medida('--mapa-punto-borde'),
+        'circle-stroke-width': medida('--mapa-punto-borde'),
       },
     });
   }
@@ -302,7 +196,7 @@ export class Mapa {
     if (vista !== 'pasos') {
       const entradas = (grafo?.puntos ?? []).filter((p) => p.seleccionable);
       this.fuente('puntos').setData(
-        this.coleccionPuntos(entradas, () => this.token('--color-texto'), () => this.medida('--mapa-punto-radio')),
+        this.coleccionPuntos(entradas, () => token('--color-texto'), () => medida('--mapa-punto-radio')),
       );
     }
 
@@ -320,8 +214,8 @@ export class Mapa {
     this.fuente('puntos').setData(
       this.coleccionPuntos(
         grafo.puntos,
-        (p) => this.token(VARIABLE_ESTADO[estadoDePunto(paso, p.id)]),
-        (p) => this.medida(estadoDePunto(paso, p.id) === 'EN_REVISION' ? '--mapa-punto-radio-actual' : '--mapa-punto-radio'),
+        (p) => token(VARIABLE_ESTADO[estadoDePunto(paso, p.id)]),
+        (p) => medida(estadoDePunto(paso, p.id) === 'EN_REVISION' ? '--mapa-punto-radio-actual' : '--mapa-punto-radio'),
       ),
     );
     const arbol: Feature<LineString>[] = [];
@@ -331,7 +225,7 @@ export class Mapa {
       if (!desde || !hasta) continue;
       arbol.push({
         type: 'Feature',
-        properties: { color: this.token(VARIABLE_ESTADO[estadoDePunto(paso, hasta.id)]) },
+        properties: { color: token(VARIABLE_ESTADO[estadoDePunto(paso, hasta.id)]) },
         geometry: { type: 'LineString', coordinates: [[desde.lng, desde.lat], [hasta.lng, hasta.lat]] },
       });
     }
@@ -398,7 +292,7 @@ export class Mapa {
     this.marcadoresExtremos.forEach((m) => m.remove());
     this.marcadoresExtremos = [];
     const mapa = this.mapa!;
-    const separacion = this.medida('--espacio-8');
+    const separacion = medida('--espacio-8');
     if (!this.esMovil()) {
       for (const e of this.extremos) {
         this.marcadoresExtremos.push(this.agregarMarcador(this.crearPastilla(e.texto, e.clase), e.punto, e.ancla));
@@ -408,7 +302,7 @@ export class Mapa {
     const contenedor = this.contenedor().nativeElement;
     const lienzo = mapa.getCanvas().getBoundingClientRect();
     // La hoja inferior tapa el borde de abajo del mapa
-    const area: Rect = { x: 0, y: 0, ancho: lienzo.width, alto: lienzo.height - this.medida('--radio-16') };
+    const area: Rect = { x: 0, y: 0, ancho: lienzo.width, alto: lienzo.height - medida('--radio-16') };
     const relativo = (selector: string): Rect[] => {
       const r = contenedor.parentElement?.querySelector(selector)?.getBoundingClientRect();
       return r ? [{ x: r.x - lienzo.x, y: r.y - lienzo.y, ancho: r.width, alto: r.height }] : [];
@@ -447,7 +341,7 @@ export class Mapa {
   private agregarMarcador(elemento: HTMLElement, punto: PuntoVisual, ancla: Ancla): Marker {
     const marcador = this.crearMarcador!(elemento, {
       anchor: ancla,
-      offset: desplazamiento(ancla, this.medida('--espacio-8')),
+      offset: desplazamiento(ancla, medida('--espacio-8')),
     });
     return marcador.setLngLat([punto.lng, punto.lat]).addTo(this.mapa!);
   }
@@ -468,15 +362,15 @@ export class Mapa {
       ];
       mapa.fitBounds(limites, {
         padding: {
-          top: this.medida('--mapa-margen-movil-arriba'),
-          bottom: this.medida('--mapa-margen-movil-abajo'),
-          left: this.medida('--mapa-margen-movil-izquierda'),
-          right: this.medida('--mapa-margen-movil-derecha'),
+          top: medida('--mapa-margen-movil-arriba'),
+          bottom: medida('--mapa-margen-movil-abajo'),
+          left: medida('--mapa-margen-movil-izquierda'),
+          right: medida('--mapa-margen-movil-derecha'),
         },
-        duration: this.duracion(),
+        duration: duracion(),
       });
     } else if (this.limitesCampus) {
-      mapa.fitBounds(this.limitesCampus, { padding: 0, duration: this.duracion() });
+      mapa.fitBounds(this.limitesCampus, { padding: 0, duration: duracion() });
     }
   }
 
@@ -513,18 +407,5 @@ export class Mapa {
 
   private fuente(id: string): GeoJSONSource {
     return this.mapa!.getSource(id) as GeoJSONSource;
-  }
-
-  /** Lee un token de diseño (MapLibre no entiende var(--…)). */
-  private token(nombre: string): string {
-    return getComputedStyle(document.documentElement).getPropertyValue(nombre).trim();
-  }
-
-  private medida(nombre: string): number {
-    return parseFloat(this.token(nombre));
-  }
-
-  private duracion(): number {
-    return this.sinMovimiento ? 0 : 500;
   }
 }

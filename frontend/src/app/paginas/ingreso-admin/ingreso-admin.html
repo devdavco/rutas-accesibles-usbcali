@@ -1,0 +1,54 @@
+<div class="contenedor">
+  <form class="tarjeta" (submit)="ingresar($event)" novalidate>
+    <div>
+      <h1>Ingreso de administrador</h1>
+      <p class="parrafo descripcion">Solo el administrador puede editar los puntos y tramos del campus.</p>
+    </div>
+
+    @if (error(); as mensaje) {
+      <div class="alerta" role="alert">
+        <strong>No se pudo ingresar</strong>
+        <p>{{ mensaje }}</p>
+      </div>
+    } @else if (sesionExpirada()) {
+      <div class="alerta" role="alert">
+        <strong>La sesión expiró</strong>
+        <p>Ingrese de nuevo para seguir editando.</p>
+      </div>
+    }
+
+    <div class="campo">
+      <label class="etiqueta" for="correo">Correo institucional</label>
+      <input
+        id="correo"
+        class="campo-texto"
+        type="email"
+        autocomplete="username"
+        required
+        [value]="correo()"
+        [attr.aria-invalid]="faltanCampos() && !correo().trim()"
+        (input)="escribir('correo', $event)"
+      />
+    </div>
+
+    <div class="campo">
+      <label class="etiqueta" for="contrasena">Contraseña</label>
+      <input
+        id="contrasena"
+        class="campo-texto"
+        type="password"
+        autocomplete="current-password"
+        required
+        [value]="contrasena()"
+        [attr.aria-invalid]="faltanCampos() && !contrasena()"
+        (input)="escribir('contrasena', $event)"
+      />
+    </div>
+
+    <button type="submit" class="btn principal" [attr.aria-disabled]="enviando()">
+      {{ enviando() ? 'Ingresando…' : 'Ingresar' }}
+    </button>
+
+    <p class="ayuda">Si olvidó la contraseña, contacte al responsable del sistema.</p>
+  </form>
+</div>

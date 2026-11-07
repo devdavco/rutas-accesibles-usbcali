@@ -2,7 +2,11 @@ services:
   postgis:
     image: postgis/postgis:18-3.7
     container_name: rutas-postgis
-    env_file: .env
+    # Solo las variables de la base: infra/.env también tiene secretos de servicio-negocio
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     ports:
       - "${DB_PORT:-5432}:5432"
     volumes:

@@ -37,6 +37,10 @@ export interface TramoVisual {
   puntoInicialId: number;
   puntoFinalId: number;
   condicion: Condicion;
+  /** Metros calculados por PostGIS */
+  longitudM: number;
+  /** Metros × factor de la condición; null para escaleras (no entra al grafo) */
+  pesoCalculado: number | null;
 }
 
 /** GET /api/rutas?origen=&destino=&pasos= */

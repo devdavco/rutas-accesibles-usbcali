@@ -81,6 +81,17 @@ curl 'http://localhost:8080/api/rutas?origen=1&destino=2'
 curl --compressed 'http://localhost:8080/api/rutas?origen=1&destino=2&pasos=true'
 ```
 
+## Administración del grafo
+
+`infra/.env` debe definir `JWT_SECRETO` (mínimo 32 bytes; `openssl rand -base64 48`),
+`ADMIN_CORREO` y `ADMIN_CONTRASENA`. Al arrancar, servicio-negocio crea ese administrador si no
+existe (no hay registro). `scripts/levantar.sh` se detiene si falta alguna de las tres variables.
+
+- Ingreso: `http://localhost:4200/admin/ingresar`. Editor: `/admin/editor`.
+- API: `POST /api/admin/autenticacion/ingresar` y CRUD en `/api/admin/puntos` y `/api/admin/tramos`
+  (con `Authorization: Bearer <token>`). Hay ejemplos en `backend/http/rutas.http`.
+- Modelo de seguridad y decisiones aceptadas: `docs/seguridad.md`.
+
 ## Frontend
 
 ```bash

@@ -5,6 +5,7 @@ import co.edu.usbcali.rutas.grafos.algoritmo.ResultadoDijkstra;
 import co.edu.usbcali.rutas.grafos.cliente.ClienteNegocio;
 import co.edu.usbcali.rutas.grafos.cliente.GrafoNegocio;
 import co.edu.usbcali.rutas.grafos.dominio.CalculadoraPesos;
+import co.edu.usbcali.rutas.grafos.dominio.Condicion;
 import co.edu.usbcali.rutas.grafos.dominio.Grafo;
 import co.edu.usbcali.rutas.grafos.dominio.Punto;
 import co.edu.usbcali.rutas.grafos.respuesta.GrafoVisual;
@@ -64,8 +65,15 @@ public class ServicioRutas {
 					.toList(),
 				datos.tramos()
 					.stream()
-					.map(t -> new GrafoVisual.TramoVisual(t.id(), t.puntoInicialId(), t.puntoFinalId(), t.condicion()))
+					.map(t -> new GrafoVisual.TramoVisual(t.id(), t.puntoInicialId(), t.puntoFinalId(), t.condicion(),
+							t.longitudM(), pesoODesconocido(t.condicion(), t.longitudM())))
 					.toList());
+	}
+
+	/** Peso del tramo con la misma regla que usa Dijkstra; nulo si no se puede recorrer. */
+	private Double pesoODesconocido(Condicion condicion, double metros) {
+		var peso = calculadoraPesos.peso(condicion, metros);
+		return peso.isPresent() ? peso.getAsDouble() : null;
 	}
 
 	public RespuestaRuta calcularRuta(long origen, long destino, boolean incluirPasos) {

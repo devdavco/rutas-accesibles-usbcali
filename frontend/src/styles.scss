@@ -129,6 +129,32 @@ h3 {
   color: var(--color-texto);
 }
 
+/* Campos de texto */
+.campo-texto {
+  min-height: var(--alto-control);
+  width: 100%;
+  padding: 0 var(--espacio-14);
+  border: var(--borde-fino) solid var(--color-borde-control);
+  border-radius: var(--radio-8);
+  background: var(--color-superficie);
+  font-size: var(--texto-cuerpo);
+
+  &:focus-visible {
+    border: var(--borde-medio) solid var(--color-primario);
+    box-shadow: var(--foco-campo);
+    border-radius: var(--radio-8);
+  }
+
+  &[aria-invalid='true'] {
+    border-color: var(--color-error);
+  }
+
+  &:disabled {
+    background: var(--color-fondo);
+    color: var(--color-texto-secundario);
+  }
+}
+
 /* Control segmentado (radios nativos) */
 .segmentado {
   display: flex;
@@ -193,6 +219,16 @@ h3 {
     }
   }
 
+  &.peligro {
+    background: var(--color-superficie);
+    color: var(--color-error);
+    border-color: var(--color-error);
+
+    &:hover:not(:disabled) {
+      background: var(--color-error-suave);
+    }
+  }
+
   &.secundario {
     background: var(--color-superficie);
     color: var(--color-primario);
@@ -213,6 +249,25 @@ h3 {
 }
 
 /* Mensajes */
+.exito {
+  background: var(--color-exito-suave);
+  border: var(--borde-fino) solid var(--color-exito);
+  border-radius: var(--radio-8);
+  padding: var(--espacio-10) var(--espacio-14);
+  font-size: var(--texto-nota);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-exito);
+}
+
+/* Etiqueta de sección en mayúsculas (diseño: "TRAMO SELECCIONADO") */
+.etiqueta-seccion {
+  font-size: var(--texto-chip);
+  font-weight: var(--peso-negrita);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-texto-secundario);
+}
+
 .nota {
   background: var(--color-primario-suave);
   border-radius: var(--radio-8);
@@ -296,6 +351,17 @@ h3 {
       padding: var(--espacio-4) var(--espacio-12);
     }
   }
+}
+
+/* Punto en edición en el mapa del editor (marcador HTML arrastrable) */
+.marcador-edicion {
+  width: var(--tamano-marcador-edicion);
+  height: var(--tamano-marcador-edicion);
+  border-radius: 50%;
+  background: var(--color-superficie);
+  border: var(--borde-alerta) solid var(--color-primario);
+  box-shadow: var(--sombra-tarjeta);
+  cursor: grab;
 }
 
 @media (prefers-reduced-motion: reduce) {

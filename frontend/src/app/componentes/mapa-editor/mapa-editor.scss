@@ -1,0 +1,75 @@
+@use 'styles/quiebres' as q;
+
+:host {
+  display: block;
+  height: 100%;
+}
+
+.zona {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+  background: var(--color-mapa-fondo);
+}
+
+.lienzo {
+  position: absolute;
+  inset: 0;
+}
+
+.aviso {
+  position: absolute;
+  inset: var(--espacio-16);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--color-texto-secundario);
+}
+
+.leyenda {
+  position: absolute;
+  left: var(--espacio-16);
+  bottom: var(--espacio-40);
+  background: var(--color-superficie);
+  border: var(--borde-fino) solid var(--color-borde-control);
+  border-radius: var(--radio-8);
+  padding: var(--espacio-12) var(--espacio-16);
+
+  @include q.movil {
+    display: none;
+  }
+
+  ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: var(--espacio-6);
+  }
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: var(--espacio-8);
+    font-size: var(--texto-ayuda);
+  }
+}
+
+.titulo-leyenda {
+  font-size: var(--texto-ayuda);
+  font-weight: var(--peso-negrita);
+  margin-bottom: var(--espacio-8);
+}
+
+.muestra-linea {
+  width: var(--ancho-muestra-linea);
+  height: var(--alto-muestra-linea);
+  border-radius: var(--radio-6);
+  background: var(--color-muestra);
+
+  &.punteada {
+    height: 0;
+    background: none;
+    border-top: var(--borde-acento) dashed var(--color-muestra);
+  }
+}

@@ -9,4 +9,8 @@ public interface PuntoRepositorio extends JpaRepository<Punto, Long> {
 	/** Puntos que se pueden elegir como origen o destino. */
 	List<Punto> findBySeleccionableTrue();
 
+	boolean existsByNombre(String nombre);
+
+	boolean existsByNombreAndIdNot(String nombre, Long id);
+
 }

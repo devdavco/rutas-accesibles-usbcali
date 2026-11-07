@@ -16,6 +16,16 @@ spring:
   flyway:
     locations: classpath:db/migration
 
+rutas:
+  jwt:
+    # Clave HS256 (mínimo 256 bits = 32 bytes). Sin valor por defecto: el servicio no arranca sin ella
+    secreto: ${JWT_SECRETO}
+    expiracion: PT2H
+  # Administrador inicial: se crea al arrancar si no existe (no hay endpoint de registro)
+  admin:
+    correo: ${ADMIN_CORREO:}
+    contrasena: ${ADMIN_CONTRASENA:}
+
 management:
   endpoints:
     web:

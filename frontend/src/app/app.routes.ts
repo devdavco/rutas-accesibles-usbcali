@@ -1,6 +1,8 @@
 import { Routes } from '@angular/router';
-import { AdminPendiente } from './paginas/admin-pendiente/admin-pendiente';
+import { EditorGrafo } from './paginas/editor-grafo/editor-grafo';
+import { IngresoAdmin } from './paginas/ingreso-admin/ingreso-admin';
 import { PaginaRutas } from './paginas/pagina-rutas/pagina-rutas';
+import { sesionActivaGuard } from './servicios/sesion-activa.guard';
 
 export const routes: Routes = [
   {
@@ -12,6 +14,13 @@ export const routes: Routes = [
       { path: 'ruta', children: [] },
     ],
   },
-  { path: 'admin', component: AdminPendiente, title: 'Ingreso administrador · Rutas accesibles USB Cali' },
+  { path: 'admin', pathMatch: 'full', redirectTo: 'admin/editor' },
+  { path: 'admin/ingresar', component: IngresoAdmin, title: 'Ingreso de administrador · Rutas accesibles USB Cali' },
+  {
+    path: 'admin/editor',
+    component: EditorGrafo,
+    canActivate: [sesionActivaGuard],
+    title: 'Editor del grafo · Rutas accesibles USB Cali',
+  },
   { path: '**', redirectTo: '' },
 ];

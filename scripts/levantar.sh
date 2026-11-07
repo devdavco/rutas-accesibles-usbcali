@@ -16,6 +16,14 @@ set -a
 source "$RAIZ/infra/.env"
 set +a
 
+# servicio-negocio no arranca sin estas variables (ver infra/.env.example)
+for variable in JWT_SECRETO ADMIN_CORREO ADMIN_CONTRASENA; do
+  if [[ -z "${!variable:-}" ]]; then
+    echo "Falta $variable en infra/.env (ver infra/.env.example)." >&2
+    exit 1
+  fi
+done
+
 # Espera hasta que una URL responda (máximo $3 segundos). Si no responde, muestra el final del log.
 esperar() {
   local nombre="$1" url="$2" limite="${3:-90}" log="$LOGS/$1.log" pid="$LOGS/$1.pid"
@@ -58,6 +66,7 @@ echo "2/5 Compilando los servicios"
 
 echo "3/5 servicio-negocio (8081)"
 DB_USER="$POSTGRES_USER" DB_PASSWORD="$POSTGRES_PASSWORD" DB_PORT="${DB_PORT:-5432}" \
+  JWT_SECRETO="$JWT_SECRETO" ADMIN_CORREO="$ADMIN_CORREO" ADMIN_CONTRASENA="$ADMIN_CONTRASENA" \
   arrancar servicio-negocio java -jar "$RAIZ/backend/servicio-negocio/build/libs/servicio-negocio-0.0.1-SNAPSHOT.jar"
 esperar servicio-negocio http://localhost:8081/actuator/health
 

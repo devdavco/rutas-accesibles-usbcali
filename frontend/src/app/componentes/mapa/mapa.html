@@ -1,19 +1,11 @@
 <section class="zona" aria-label="Mapa del campus">
-  <div #contenedor class="lienzo" [class.solo-plano]="soloPlano()"></div>
+  <div #contenedor class="lienzo"></div>
 
   @if (error()) {
     <p class="aviso">No se pudo cargar el mapa. La ruta y sus indicaciones siguen disponibles en el panel.</p>
   }
 
-  <div class="controles">
-    <div class="zoom" role="group" aria-label="Acercamiento del mapa">
-      <button type="button" class="boton-mapa" (click)="acercar()">Acercar</button>
-      <button type="button" class="boton-mapa" (click)="alejar()">Alejar</button>
-    </div>
-    <button type="button" class="boton-mapa" [attr.aria-pressed]="soloPlano()" (click)="alternarSoloPlano()">
-      Solo plano
-    </button>
-  </div>
+  <app-controles-mapa [mapa]="mapaListo()" [capasBase]="capasBase()" />
 
   <div class="leyenda">
     @if (vista() === 'pasos') {
@@ -32,8 +24,4 @@
     }
   </div>
 
-  <p class="atribucion">
-    <!-- &ngsp; conserva el espacio entre enlaces (Angular quita los espacios entre elementos) -->
-    <a href="https://openfreemap.org">© OpenFreeMap</a>&ngsp;<a href="https://openmaptiles.org">© OpenMapTiles</a>&ngsp;<a href="https://www.openstreetmap.org/copyright">© <span class="largo">colaboradores de </span>OpenStreetMap</a>
-  </p>
 </section>

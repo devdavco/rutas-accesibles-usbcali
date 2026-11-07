@@ -41,9 +41,27 @@
   }
 }
 
-// En móvil el acceso de administración pasa al pie del panel
+// En móvil el acceso de administración de la consulta pasa al pie del panel
 @include q.movil {
-  .enlace {
+  .solo-escritorio {
     display: none;
+  }
+}
+
+.cuenta {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-6);
+  font-size: var(--texto-secundario);
+  color: var(--color-texto-secundario);
+
+  @include q.movil {
+    .correo {
+      display: none;
+    }
+
+    span[aria-hidden] {
+      display: none;
+    }
   }
 }

@@ -46,8 +46,19 @@ class RutasControllerTest extends PruebaConNegocioSimulado {
 			.andExpect(jsonPath("$.puntos[0].nombre").value("Entrada Principal"))
 			.andExpect(jsonPath("$.puntos[0].lat").value(closeTo(3.34252136, 1e-8)))
 			.andExpect(jsonPath("$.tramos[0].puntoInicialId").value(4))
-			// Sin longitudes: el mapa no calcula nada
-			.andExpect(jsonPath("$.tramos[0].longitudM").doesNotExist());
+			// Longitud y peso calculados en el backend: el editor no repite la regla de pesos
+			.andExpect(jsonPath("$.tramos[0].longitudM").value(23.6))
+			.andExpect(jsonPath("$.tramos[0].pesoCalculado").value(23.6))
+			// Escaleras: no entran al grafo, su peso es null
+			.andExpect(jsonPath("$.tramos[?(@.condicion == 'ESCALERAS')].pesoCalculado").value(org.hamcrest.Matchers.contains(org.hamcrest.Matchers.nullValue())));
+	}
+
+	@Test
+	void elPesoDeLaPendienteFuerteEsElDoble() throws Exception {
+		NEGOCIO.responder(PROTOTIPO.conCondicion(4, 2, Condicion.PENDIENTE_FUERTE).json());
+		mockMvc.perform(get("/api/rutas/grafo"))
+			.andExpect(jsonPath("$.tramos[0].condicion").value("PENDIENTE_FUERTE"))
+			.andExpect(jsonPath("$.tramos[0].pesoCalculado").value(47.2));
 	}
 
 	@Test

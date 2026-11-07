@@ -70,6 +70,8 @@
   --ancho-panel: 420px;
   --ancho-panel-pasos: 480px;
   --relleno-panel: 28px;
+  --ancho-tarjeta: 440px;
+  --relleno-tarjeta: 36px;
   --relleno-panel-arriba-resultado: 22px;
   --alto-mapa-movil: 320px;
   --alto-mapa-movil-pasos: 300px;
@@ -98,6 +100,8 @@
   --mapa-punto-radio: 5px;
   --mapa-punto-radio-actual: 8px;
   --mapa-punto-borde: 2px;
+  --mapa-tramo-seleccionado-ancho: 14px;
+  --tamano-marcador-edicion: 22px;
   /* Encuadre de la ruta en móvil: márgenes para que nada tape origen, destino ni sus etiquetas */
   --mapa-margen-movil-arriba: 64px; /* etiqueta de dos líneas sobre un extremo de la ruta */
   --mapa-margen-movil-abajo: 88px; /* etiqueta bajo un extremo + atribución + borde de la hoja */

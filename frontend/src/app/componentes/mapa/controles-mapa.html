@@ -1,0 +1,14 @@
+<div class="controles">
+  <div class="zoom" role="group" aria-label="Acercamiento del mapa">
+    <button type="button" class="boton-mapa" (click)="acercar()">Acercar</button>
+    <button type="button" class="boton-mapa" (click)="alejar()">Alejar</button>
+  </div>
+  <button type="button" class="boton-mapa" [attr.aria-pressed]="soloPlano()" (click)="alternarSoloPlano()">
+    Solo plano
+  </button>
+</div>
+
+<p class="atribucion">
+  <!-- &ngsp; conserva el espacio entre enlaces (Angular quita los espacios entre elementos) -->
+  <a href="https://openfreemap.org">© OpenFreeMap</a>&ngsp;<a href="https://openmaptiles.org">© OpenMapTiles</a>&ngsp;<a href="https://www.openstreetmap.org/copyright">© <span class="largo">colaboradores de </span>OpenStreetMap</a>
+</p>
