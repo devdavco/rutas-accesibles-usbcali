@@ -171,9 +171,17 @@ secreto: los secretos viven solo en SSM Parameter Store.
 ### Publicación desde GitHub Actions (OIDC, sin llaves)
 - **Proveedor de identidad OIDC** `token.actions.githubusercontent.com` (audiencia `sts.amazonaws.com`).
 - **Rol `github-actions-ecr-push`**:
-  - trust policy: solo lo puede asumir un token OIDC de
-    `repo:devdavco/rutas-accesibles-usbcali:ref:refs/heads/main` (ni ramas, ni pull requests,
-    ni otros repositorios);
+  - trust policy (`sts:AssumeRoleWithWebIdentity`): `aud` = `sts.amazonaws.com` y `sub` =
+    `repo:devdavco@98057946/rutas-accesibles-usbcali@1448704103:ref:refs/heads/main`.
+    Solo lo asume un job de la rama `main` de este repositorio (ni otras ramas, ni pull requests,
+    ni otros repositorios).
+    - **Formato del `sub` con identificadores inmutables.** Este repositorio emite el `sub` con el
+      ID de la cuenta (`devdavco@98057946`) y del repositorio (`rutas-accesibles-usbcali@1448704103`),
+      no con el formato antiguo `repo:devdavco/rutas-accesibles-usbcali:…`. Se puede consultar en
+      `https://api.github.com/repos/devdavco/rutas-accesibles-usbcali/actions/oidc/customization/sub`
+      (`sub_claim_prefix`). Con el formato antiguo en la trust policy, el job falla con
+      `Not authorized to perform sts:AssumeRoleWithWebIdentity`. Los IDs además protegen contra
+      que alguien recree una cuenta o repositorio con el mismo nombre y asuma el rol.
   - política en línea `subir-imagenes-ecr`: obtener el token de ECR, subir capas e imágenes y
     leerlas (`ecr:DescribeImages`, `ecr:BatchGetImage`) en los 4 repositorios.
 - **Workflow** (`.github/workflows/ci.yml`, job `publicar-imagenes`): corre solo en push a `main`,
