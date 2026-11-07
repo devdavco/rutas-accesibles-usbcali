@@ -1,0 +1,12 @@
+# Contexto de las imágenes del backend: solo lo necesario para compilar
+**/build
+**/.gradle
+.gradle
+.kotlin
+logs
+**/.env*
+.idea
+*.iml
+http
+herramientas
+**/src/test

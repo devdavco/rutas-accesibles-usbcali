@@ -1,0 +1,47 @@
+# Puerta de entrada única: sirve el frontend y reenvía /api/* al gateway.
+# Frontend y API quedan en el mismo origen, así que en producción no hace falta CORS.
+#
+# DOMINIO (lo define docker-compose.prod.yml):
+#   - sin dominio: ":80"  → HTTP en el puerto 80 (para probar con la IP)
+#   - con dominio: "rutas.ejemplo.edu.co" → HTTPS automático con Let's Encrypt (y 80 → 443)
+#   - "localhost" → HTTPS con la CA interna de Caddy (prueba local)
+
+{$DOMINIO} {
+	# Compresión (el API ya llega comprimido desde el gateway; Caddy no lo comprime dos veces)
+	encode zstd gzip
+
+	# Encabezados de seguridad básicos
+	header {
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+	# HSTS solo cuando se sirve por HTTPS
+	@https protocol https
+	header @https Strict-Transport-Security "max-age=31536000"
+
+	# API: solo /api/* llega al gateway (/interno y /actuator nunca se exponen)
+	handle /api/* {
+		reverse_proxy gateway:8080
+	}
+
+	# Frontend
+	handle {
+		root * /srv
+		# Archivos con hash en el nombre (main-XXXX.js, styles-XXXX.css…): caché larga
+		@conHash path_regexp \-[A-Z0-9]{8}\.(js|css)$
+		header @conHash Cache-Control "public, max-age=31536000, immutable"
+		# Plano, fuentes, worker de MapLibre: caché de un día
+		@recursos path /plano/* /media/* /maplibre/*
+		header @recursos Cache-Control "public, max-age=86400"
+		# index.html se revisa siempre (así un despliegue nuevo se ve de inmediato). Se usa la ruta
+		# pedida y no /index.html porque header se evalúa antes que try_files: /ruta o
+		# /admin/editor también entregan index.html
+		@indice path_regexp ^/[^.]*$|^/index\.html$
+		header @indice Cache-Control "no-cache"
+
+		# Rutas de Angular (/ruta, /admin/editor…): si no es un archivo, se sirve index.html
+		try_files {path} /index.html
+		file_server
+	}
+}

@@ -1,0 +1,104 @@
+# Composición de producción: una instancia EC2 t3.small (x86, 2 GB de RAM).
+# Solo Caddy publica puertos; el resto vive en la red interna de Docker.
+#
+#   docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d
+#
+# El archivo de entorno lo genera infra/cargar-secretos.sh desde AWS SSM Parameter Store
+# (para probar en local: infra/.env.prod.example o scripts/probar-prod-local.sh).
+# Cada contenedor recibe solo sus variables.
+#
+# Memoria (límites pensados para 2 GB; ver docs/despliegue.md):
+#   postgis 320M · servicio-negocio 448M · servicio-grafos 288M · gateway 288M · caddy 64M
+#   = 1.408 MB, y quedan unos 600 MB para el sistema operativo y Docker.
+
+name: rutas-accesibles
+
+services:
+  postgis:
+    image: postgis/postgis:18-3.7
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    # Memoria contenida: pocos datos (94 puntos) y pocas conexiones (Hikari usa 5)
+    command: ["postgres", "-c", "shared_buffers=64MB", "-c", "max_connections=30", "-c", "work_mem=4MB"]
+    volumes:
+      - datos-postgis:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    mem_limit: 320m
+    networks: [interna]
+
+  servicio-negocio:
+    image: ${REGISTRO}/servicio-negocio:${ETIQUETA}
+    restart: unless-stopped
+    environment:
+      DB_HOST: postgis
+      DB_NAME: ${POSTGRES_DB}
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRETO: ${JWT_SECRETO}
+      ADMIN_CORREO: ${ADMIN_CORREO}
+      ADMIN_CONTRASENA: ${ADMIN_CONTRASENA}
+    depends_on:
+      postgis:
+        condition: service_healthy
+    mem_limit: 448m
+    networks: [interna]
+
+  servicio-grafos:
+    image: ${REGISTRO}/servicio-grafos:${ETIQUETA}
+    restart: unless-stopped
+    environment:
+      NEGOCIO_URL: http://servicio-negocio:8081
+    depends_on:
+      servicio-negocio:
+        condition: service_healthy
+    mem_limit: 288m
+    networks: [interna]
+
+  gateway:
+    image: ${REGISTRO}/gateway:${ETIQUETA}
+    restart: unless-stopped
+    environment:
+      NEGOCIO_URL: http://servicio-negocio:8081
+      GRAFOS_URL: http://servicio-grafos:8082
+      # Frontend y API van por el mismo origen (Caddy), así que CORS casi no se usa; por si
+      # acaso solo se admite el propio sitio
+      CORS_ORIGENES: ${ORIGEN_PUBLICO:-http://localhost}
+    depends_on:
+      servicio-grafos:
+        condition: service_healthy
+    mem_limit: 288m
+    networks: [interna]
+
+  caddy:
+    image: ${REGISTRO}/frontend:${ETIQUETA}
+    restart: unless-stopped
+    environment:
+      # Sin dominio, HTTP en el puerto 80; con dominio, HTTPS automático (Let's Encrypt)
+      DOMINIO: ${DOMINIO:-:80}
+    ports:
+      - "${PUERTO_HTTP:-80}:80"
+      - "${PUERTO_HTTPS:-443}:443"
+      - "${PUERTO_HTTPS:-443}:443/udp" # HTTP/3
+    volumes:
+      - caddy-datos:/data # certificados de Let's Encrypt (no se pierden al recrear el contenedor)
+      - caddy-config:/config
+    depends_on:
+      gateway:
+        condition: service_healthy
+    mem_limit: 64m
+    networks: [interna]
+
+networks:
+  interna: {}
+
+volumes:
+  datos-postgis: {}
+  caddy-datos: {}
+  caddy-config: {}

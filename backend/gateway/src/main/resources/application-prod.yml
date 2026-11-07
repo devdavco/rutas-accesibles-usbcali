@@ -1,0 +1,31 @@
+# Perfil de producción (SPRING_PROFILES_ACTIVE=prod en la imagen Docker).
+spring:
+  # Logs a la consola, sin colores (los recoge Docker)
+  output:
+    ansi:
+      enabled: never
+
+server:
+  # Detrás de Caddy: respeta X-Forwarded-Proto/Host. Sin esto, con HTTPS el CorsFilter vería
+  # "http" y trataría las peticiones POST/PUT/DELETE del mismo origen como CORS (403)
+  forward-headers-strategy: framework
+  # Sin detalles internos en los errores que llegan al cliente
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-binding-errors: never
+    include-exception: false
+  # Pocos hilos: una instancia pequeña con pocos usuarios simultáneos
+  tomcat:
+    threads:
+      max: 50
+      min-spare: 2
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never

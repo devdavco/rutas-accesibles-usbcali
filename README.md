@@ -105,6 +105,18 @@ queda en la URL (`/ruta?origen=1&destino=2&modo=pasos`). El mapa usa MapLibre GL
 OpenFreeMap y el plano del campus (`frontend/public/plano/`, copiado del prototipo con
 `node backend/herramientas/copiar-plano.mjs`). Los estilos usan los tokens de `docs/diseno/tokens.css`.
 
+## Producción (imágenes Docker)
+
+Cada componente tiene su Dockerfile y `infra/docker-compose.prod.yml` los levanta detrás de Caddy
+(única entrada, HTTPS automático con dominio). Para probarlo en local:
+
+```bash
+scripts/probar-prod-local.sh            # http://localhost
+scripts/probar-prod-local.sh --https    # https://localhost (CA interna de Caddy)
+```
+
+Arquitectura, memoria, secretos (SSM) y detalles: `docs/despliegue.md`.
+
 ## Compilar y probar
 
 ```bash
