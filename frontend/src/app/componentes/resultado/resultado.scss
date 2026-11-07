@@ -93,3 +93,27 @@
 .btn {
   margin-top: var(--espacio-4);
 }
+
+// Móvil: distancia destacada; el costo pasa a ser un dato secundario
+.encabezado-hoja {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+}
+
+.distancia-destacada {
+  font-size: var(--texto-titulo-1);
+  line-height: var(--interlinea-titulo-1);
+  font-weight: var(--peso-negrita);
+  color: var(--color-primario-oscuro);
+}
+
+.trayecto-linea {
+  font-size: var(--texto-secundario);
+  line-height: var(--interlinea-secundario);
+  color: var(--color-texto-secundario);
+}
+
+.costo-secundario {
+  margin-top: var(--espacio-4);
+}

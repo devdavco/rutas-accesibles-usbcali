@@ -7,6 +7,7 @@ import co.edu.usbcali.rutas.grafos.cliente.GrafoNegocio;
 import co.edu.usbcali.rutas.grafos.dominio.CalculadoraPesos;
 import co.edu.usbcali.rutas.grafos.dominio.Grafo;
 import co.edu.usbcali.rutas.grafos.dominio.Punto;
+import co.edu.usbcali.rutas.grafos.respuesta.GrafoVisual;
 import co.edu.usbcali.rutas.grafos.respuesta.PuntoSeleccionable;
 import co.edu.usbcali.rutas.grafos.respuesta.RespuestaRuta;
 import java.text.Collator;
@@ -50,6 +51,21 @@ public class ServicioRutas {
 			.sorted(POR_EDIFICIO_Y_NOMBRE)
 			.map(p -> new PuntoSeleccionable(p.id(), p.nombre(), p.tipo(), p.edificio()))
 			.toList();
+	}
+
+	/** Todos los puntos y tramos, tal como los entrega servicio-negocio, para dibujarlos. */
+	public GrafoVisual grafoVisual() {
+		GrafoNegocio datos = clienteNegocio.obtenerGrafo();
+		return new GrafoVisual(
+				datos.puntos()
+					.stream()
+					.map(p -> new GrafoVisual.PuntoVisual(p.id(), p.nombre(), p.tipo(), p.edificio(), p.seleccionable(),
+							p.lat(), p.lng()))
+					.toList(),
+				datos.tramos()
+					.stream()
+					.map(t -> new GrafoVisual.TramoVisual(t.id(), t.puntoInicialId(), t.puntoFinalId(), t.condicion()))
+					.toList());
 	}
 
 	public RespuestaRuta calcularRuta(long origen, long destino, boolean incluirPasos) {

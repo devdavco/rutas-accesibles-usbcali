@@ -21,8 +21,10 @@ import type {
 import type { Feature, FeatureCollection, LineString, Point } from 'geojson';
 import { GrafoVisual, PasoDijkstra, PuntoVisual, RespuestaRuta } from '../../api/tipos';
 import { EstadoPunto, ETIQUETA_ESTADO, estadoDePunto } from '../../dominio/estado-punto';
-import { nombreCorto, separarNombre } from '../../dominio/formato';
+import { nombreVisible, separarNombre } from '../../dominio/formato';
+import { Ancla, Rect, desplazamiento, elegirAncla, rectEtiqueta } from '../../dominio/etiquetas';
 import { mitadesDelPlano } from '../../dominio/plano';
+import { Pantalla } from '../../servicios/pantalla';
 
 /** Qué dibuja el mapa: entradas y etiquetas, una ruta, o el avance de Dijkstra. */
 export type VistaMapa = 'consulta' | 'resultado' | 'pasos';
@@ -43,6 +45,8 @@ const VARIABLE_ESTADO: Record<EstadoPunto, string> = {
   CONOCIDO: '--color-dij-conocido',
   SIN_VISITAR: '--color-dij-sinvisitar',
 };
+
+type Coordenada = [number, number];
 
 /** Píxeles que cada mitad del plano se extiende más allá de la diagonal que las separa. */
 const SOLAPE_PX = 2;
@@ -79,8 +83,15 @@ export class Mapa {
   private capasBase: string[] = [];
   private limitesCampus?: [[number, number], [number, number]];
   private marcadores: Marker[] = [];
+  /** Etiquetas de los extremos de la ruta; en móvil se recolocan cada vez que el mapa se mueve. */
+  private extremos: { punto: PuntoVisual; texto: string; clase: string; ancla: Ancla }[] = [];
+  private lineaExtremos: Coordenada[] = [];
+  private marcadoresExtremos: Marker[] = [];
 
   private readonly sinMovimiento = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  private readonly esMovil = inject(Pantalla).esMovil;
+  /** Lo último que se encuadró, para volver a encuadrar si cambia el tamaño del mapa. */
+  private ultimoEncuadre?: { vista: VistaMapa; linea?: Coordenada[] };
 
   /** Puntos del grafo por id. */
   private readonly puntosPorId = computed(
@@ -94,6 +105,7 @@ export class Mapa {
     // Capas que dependen de la vista, el grafo y la ruta
     effect(() => {
       if (!this.cargado()) return;
+      this.esMovil(); // al rotar el teléfono cambian el encuadre y las etiquetas
       this.dibujarVista(this.vista(), this.grafo(), this.ruta());
     });
 
@@ -168,8 +180,17 @@ export class Mapa {
         await planoListo;
         this.agregarPlano(imagenPlano, calibracion.esquinas);
         this.agregarCapas();
-        new ResizeObserver(() => mapa.resize()).observe(this.contenedor().nativeElement);
+        new ResizeObserver(() => {
+          mapa.resize();
+          // En móvil la hoja puede ampliar o reducir el mapa: la ruta debe seguir completa a la vista
+          if (this.esMovil() && this.ultimoEncuadre) {
+            this.encuadrar(this.ultimoEncuadre.vista, this.ultimoEncuadre.linea);
+          }
+        }).observe(this.contenedor().nativeElement);
         this.cargado.set(true);
+      });
+      mapa.on('moveend', () => {
+        if (this.esMovil() && this.extremos.length > 0) this.colocarExtremos();
       });
       mapa.on('error', (evento) => console.error('Error del mapa', evento.error));
     } catch (e) {
@@ -265,8 +286,13 @@ export class Mapa {
   }
 
   /** Dibuja lo que no cambia entre pasos: ruta, grafo completo, entradas y etiquetas. */
-  private dibujarVista(vista: VistaMapa, grafo: GrafoVisual | undefined, ruta: RespuestaRuta | undefined): void {
+  private dibujarVista(
+    vista: VistaMapa,
+    grafo: GrafoVisual | undefined,
+    ruta: RespuestaRuta | undefined,
+  ): void {
     const linea = ruta?.geojson?.features.find((f) => f.geometry.type === 'LineString');
+    const coordenadas = linea?.geometry.coordinates as Coordenada[] | undefined;
     this.fuente('ruta').setData({
       type: 'FeatureCollection',
       features: vista === 'resultado' && linea ? [linea as Feature<LineString>] : [],
@@ -280,8 +306,8 @@ export class Mapa {
       );
     }
 
-    this.ponerEtiquetas(vista, grafo, ruta);
-    this.encuadrar(vista, linea?.geometry.coordinates as [number, number][] | undefined);
+    this.ponerEtiquetas(vista, grafo, ruta, coordenadas);
+    this.encuadrar(vista, coordenadas);
   }
 
   /** Colorea los puntos y el árbol de predecesores según el paso actual. */
@@ -312,18 +338,32 @@ export class Mapa {
     this.fuente('arbol').setData({ type: 'FeatureCollection', features: arbol });
   }
 
-  /** Etiquetas como marcadores HTML (decorativas: la misma información está en el panel). */
-  private ponerEtiquetas(vista: VistaMapa, grafo: GrafoVisual | undefined, ruta: RespuestaRuta | undefined): void {
+  /**
+   * Etiquetas como marcadores HTML (decorativas: la misma información está en el panel).
+   * Las de origen y destino se colocan aparte (ver colocarExtremos), sin tapar `linea`.
+   */
+  private ponerEtiquetas(
+    vista: VistaMapa,
+    grafo: GrafoVisual | undefined,
+    ruta: RespuestaRuta | undefined,
+    linea: Coordenada[] | undefined,
+  ): void {
     this.marcadores.forEach((m) => m.remove());
     this.marcadores = [];
-    if (!grafo) return;
+    this.extremos = [];
+    this.lineaExtremos = linea ?? [];
+    if (!grafo) {
+      this.colocarExtremos();
+      return;
+    }
 
     const porId = this.puntosPorId();
     const origen = ruta ? porId.get(ruta.origen.id) : undefined;
     const destino = ruta ? porId.get(ruta.destino.id) : undefined;
 
     if (vista === 'pasos') {
-      if (destino) this.marcar(destino, 'Destino', 'destino', 'bottom');
+      if (destino) this.extremos.push({ punto: destino, texto: 'Destino', clase: 'destino', ancla: 'bottom' });
+      this.colocarExtremos();
       return;
     }
     // Una etiqueta por edificio (en su primera entrada) y una por cada entrada del campus
@@ -341,48 +381,100 @@ export class Mapa {
       this.marcar(puntos[0], texto, '', 'bottom');
     }
     if (enRuta && origen && destino) {
-      this.marcar(origen, `Origen: ${nombreCorto(origen.nombre, origen.edificio)}`, 'origen', 'top');
-      this.marcar(destino, `Destino: ${nombreCorto(destino.nombre, destino.edificio)}`, 'destino', 'bottom');
+      this.extremos.push(
+        { punto: destino, texto: `Destino: ${nombreVisible(destino.nombre)}`, clase: 'destino', ancla: 'bottom' },
+        { punto: origen, texto: `Origen: ${nombreVisible(origen.nombre)}`, clase: 'origen', ancla: 'top' },
+      );
+    }
+    this.colocarExtremos();
+  }
+
+  /**
+   * Etiquetas de origen y destino. En escritorio van arriba o abajo del punto, como en el diseño.
+   * En móvil, con poco espacio, se prueba cada posición alrededor del punto y se elige la que no
+   * tapa la ruta, los controles, la atribución ni la otra etiqueta (ver dominio/etiquetas.ts).
+   */
+  private colocarExtremos(): void {
+    this.marcadoresExtremos.forEach((m) => m.remove());
+    this.marcadoresExtremos = [];
+    const mapa = this.mapa!;
+    const separacion = this.medida('--espacio-8');
+    if (!this.esMovil()) {
+      for (const e of this.extremos) {
+        this.marcadoresExtremos.push(this.agregarMarcador(this.crearPastilla(e.texto, e.clase), e.punto, e.ancla));
+      }
+      return;
+    }
+    const contenedor = this.contenedor().nativeElement;
+    const lienzo = mapa.getCanvas().getBoundingClientRect();
+    // La hoja inferior tapa el borde de abajo del mapa
+    const area: Rect = { x: 0, y: 0, ancho: lienzo.width, alto: lienzo.height - this.medida('--radio-16') };
+    const relativo = (selector: string): Rect[] => {
+      const r = contenedor.parentElement?.querySelector(selector)?.getBoundingClientRect();
+      return r ? [{ x: r.x - lienzo.x, y: r.y - lienzo.y, ancho: r.width, alto: r.height }] : [];
+    };
+    const obstaculos = [...relativo('.controles'), ...relativo('.atribucion')];
+    const linea = this.lineaExtremos.map((c) => mapa.project(c));
+
+    for (const e of this.extremos) {
+      const elemento = this.crearPastilla(e.texto, e.clase);
+      // Se mide la etiqueta (con los estilos reales) antes de decidir dónde ponerla
+      elemento.style.visibility = 'hidden';
+      contenedor.appendChild(elemento);
+      const { offsetWidth: ancho, offsetHeight: alto } = elemento;
+      elemento.remove();
+      elemento.style.visibility = '';
+
+      const p = mapa.project([e.punto.lng, e.punto.lat]);
+      const ancla = elegirAncla(p, ancho, alto, separacion, area, linea, obstaculos);
+      obstaculos.push(rectEtiqueta(p, ancho, alto, ancla, separacion));
+      this.marcadoresExtremos.push(this.agregarMarcador(elemento, e.punto, ancla));
     }
   }
 
-  private marcar(punto: PuntoVisual, texto: string, clase: string, ancla: 'top' | 'bottom'): void {
+  private marcar(punto: PuntoVisual, texto: string, clase: string, ancla: Ancla): void {
+    this.marcadores.push(this.agregarMarcador(this.crearPastilla(texto, clase), punto, ancla));
+  }
+
+  private crearPastilla(texto: string, clase: string): HTMLElement {
     const elemento = document.createElement('div');
     elemento.className = `pastilla-mapa ${clase}`.trim();
     elemento.textContent = texto;
     elemento.setAttribute('aria-hidden', 'true');
-    const separacion = this.medida('--espacio-8');
+    return elemento;
+  }
+
+  private agregarMarcador(elemento: HTMLElement, punto: PuntoVisual, ancla: Ancla): Marker {
     const marcador = this.crearMarcador!(elemento, {
       anchor: ancla,
-      offset: [0, ancla === 'top' ? separacion : -separacion],
+      offset: desplazamiento(ancla, this.medida('--espacio-8')),
     });
-    this.marcadores.push(marcador.setLngLat([punto.lng, punto.lat]).addTo(this.mapa!));
+    return marcador.setLngLat([punto.lng, punto.lat]).addTo(this.mapa!);
   }
 
   /**
-   * En escritorio se ve siempre el campus completo (como en el diseño); en móvil, el resultado
-   * se acerca a la ruta dejando libres los botones de arriba.
+   * En escritorio se ve siempre el campus completo (como en el diseño). En móvil, el resultado y
+   * el paso a paso encuadran la ruta completa, dejando libres los controles y las etiquetas.
    */
-  private encuadrar(vista: VistaMapa, linea: [number, number][] | undefined): void {
+  private encuadrar(vista: VistaMapa, linea: Coordenada[] | undefined): void {
+    this.ultimoEncuadre = { vista, linea };
     const mapa = this.mapa!;
-    const lados = this.medida('--mapa-margen-movil-lados');
-    const opciones = {
-      padding: {
-        top: this.medida('--mapa-margen-movil-arriba'),
-        bottom: this.medida('--mapa-margen-movil-abajo'),
-        left: lados,
-        right: lados,
-      },
-      duration: this.duracion(),
-    };
-    if (this.esMovil() && vista === 'resultado' && linea && linea.length > 1) {
+    if (this.esMovil() && vista !== 'consulta' && linea && linea.length > 1) {
       const lngs = linea.map((c) => c[0]);
       const lats = linea.map((c) => c[1]);
       const limites: LngLatBoundsLike = [
         [Math.min(...lngs), Math.min(...lats)],
         [Math.max(...lngs), Math.max(...lats)],
       ];
-      mapa.fitBounds(limites, opciones);
+      mapa.fitBounds(limites, {
+        padding: {
+          top: this.medida('--mapa-margen-movil-arriba'),
+          bottom: this.medida('--mapa-margen-movil-abajo'),
+          left: this.medida('--mapa-margen-movil-izquierda'),
+          right: this.medida('--mapa-margen-movil-derecha'),
+        },
+        duration: this.duracion(),
+      });
     } else if (this.limitesCampus) {
       mapa.fitBounds(this.limitesCampus, { padding: 0, duration: this.duracion() });
     }
@@ -430,10 +522,6 @@ export class Mapa {
 
   private medida(nombre: string): number {
     return parseFloat(this.token(nombre));
-  }
-
-  private esMovil(): boolean {
-    return this.contenedor().nativeElement.clientWidth <= this.medida('--mapa-ancho-movil');
   }
 
   private duracion(): number {

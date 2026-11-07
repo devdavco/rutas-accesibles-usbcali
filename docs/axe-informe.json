@@ -1,0 +1,66 @@
+[
+  {
+    "pantalla": "escritorio-consulta",
+    "errores": [],
+    "infracciones": [],
+    "incompletas": [
+      "color-contrast (6)"
+    ]
+  },
+  {
+    "pantalla": "escritorio-resultado",
+    "errores": [],
+    "infracciones": [],
+    "incompletas": [
+      "color-contrast (4)"
+    ]
+  },
+  {
+    "pantalla": "escritorio-paso-a-paso",
+    "errores": [],
+    "infracciones": [],
+    "incompletas": [
+      "color-contrast (4)"
+    ]
+  },
+  {
+    "pantalla": "escritorio-sin-ruta",
+    "errores": [],
+    "infracciones": [],
+    "incompletas": [
+      "color-contrast (4)"
+    ]
+  },
+  {
+    "pantalla": "movil-consulta",
+    "errores": [],
+    "infracciones": [],
+    "incompletas": [
+      "color-contrast (5)"
+    ]
+  },
+  {
+    "pantalla": "movil-resultado",
+    "errores": [],
+    "infracciones": [],
+    "incompletas": [
+      "color-contrast (6)"
+    ]
+  },
+  {
+    "pantalla": "movil-paso-a-paso",
+    "errores": [],
+    "infracciones": [],
+    "incompletas": [
+      "color-contrast (4)"
+    ]
+  },
+  {
+    "pantalla": "movil-sin-ruta",
+    "errores": [],
+    "infracciones": [],
+    "incompletas": [
+      "color-contrast (3)"
+    ]
+  }
+]

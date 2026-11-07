@@ -41,25 +41,9 @@
   }
 }
 
-.texto-corto {
-  display: none;
-}
-
+// En móvil el acceso de administración pasa al pie del panel
 @include q.movil {
   .enlace {
-    font-size: var(--texto-nota);
-  }
-
-  .texto-largo {
-    // Sigue disponible para lectores de pantalla; a la vista queda "Admin"
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-  }
-
-  .texto-corto {
-    display: inline;
+    display: none;
   }
 }

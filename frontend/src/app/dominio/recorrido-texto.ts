@@ -1,5 +1,5 @@
 import { Condicion, Segmento } from '../api/tipos';
-import { metros } from './formato';
+import { metros, nombreVisible } from './formato';
 
 /** Una indicación del recorrido: texto, cantidad (en negrita) y condición del tramo. */
 export interface Indicacion {
@@ -27,10 +27,10 @@ export function recorridoTexto(segmentos: Segmento[]): Indicacion[] {
     const ultimo = i === segmentos.length - 1;
     let texto = verbo(segmento.condicion, primero, ultimo);
     if (primero) {
-      texto = `Desde ${segmento.desde}, ${minusculaInicial(texto)}`;
+      texto = `Desde ${nombreVisible(segmento.desde)}, ${minusculaInicial(texto)}`;
     }
     if (ultimo) {
-      texto = `${texto} hasta ${segmento.hasta}`;
+      texto = `${texto} hasta ${nombreVisible(segmento.hasta)}`;
     }
     return {
       texto,

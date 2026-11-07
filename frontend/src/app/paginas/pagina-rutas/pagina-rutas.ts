@@ -10,7 +10,7 @@ import {
   signal,
 } from '@angular/core';
 import { rxResource, toSignal } from '@angular/core/rxjs-interop';
-import { NavigationEnd, Router } from '@angular/router';
+import { NavigationEnd, Router, RouterLink } from '@angular/router';
 import { filter, map } from 'rxjs';
 import { RutasApiService } from '../../api/rutas-api.service';
 import { ProblemDetail } from '../../api/tipos';
@@ -19,9 +19,12 @@ import { Mapa, VistaMapa } from '../../componentes/mapa/mapa';
 import { PasoAPaso } from '../../componentes/paso-a-paso/paso-a-paso';
 import { Resultado } from '../../componentes/resultado/resultado';
 import { SinRuta } from '../../componentes/sin-ruta/sin-ruta';
-import { metros } from '../../dominio/formato';
+import { metros, nombreVisible } from '../../dominio/formato';
 
 type Vista = 'consulta' | 'cargando' | 'error' | 'resultado' | 'pasos' | 'sin-ruta';
+
+/** Píxeles que hay que arrastrar el asa para que cuente como arrastre y no como clic. */
+const UMBRAL_ARRASTRE = 24;
 
 const ERROR_CONEXION = 'No se pudo conectar con el servidor. Intente de nuevo.';
 
@@ -31,7 +34,7 @@ const ERROR_CONEXION = 'No se pudo conectar con el servidor. Intente de nuevo.';
  */
 @Component({
   selector: 'app-pagina-rutas',
-  imports: [Consulta, Resultado, PasoAPaso, SinRuta, Mapa],
+  imports: [Consulta, Resultado, PasoAPaso, SinRuta, Mapa, RouterLink],
   templateUrl: './pagina-rutas.html',
   styleUrl: './pagina-rutas.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -71,8 +74,13 @@ export class PaginaRutas {
   });
 
   protected readonly nombres = computed(
-    () => new Map((this.grafo.value()?.puntos ?? []).map((p) => [p.id, p.nombre] as const)),
+    () => new Map((this.grafo.value()?.puntos ?? []).map((p) => [p.id, nombreVisible(p.nombre)] as const)),
   );
+
+  /** Móvil: si el mapa ocupa casi toda la pantalla y la hoja solo asoma. */
+  protected readonly mapaAmpliado = signal(false);
+  private inicioArrastre: number | null = null;
+  private huboArrastre = false;
 
   /** Índice del paso mostrado (lo comparten el panel y el mapa). */
   protected readonly indicePaso = signal(0);
@@ -112,7 +120,7 @@ export class PaginaRutas {
         return 'Calculando ruta…';
       case 'resultado': {
         const r = this.ruta.value()!;
-        return `Ruta accesible encontrada: ${metros(r.distanciaM ?? 0)} desde ${r.origen.nombre} hasta ${r.destino.nombre}.`;
+        return `Ruta accesible encontrada: ${metros(r.distanciaM ?? 0)} desde ${nombreVisible(r.origen.nombre)} hasta ${nombreVisible(r.destino.nombre)}.`;
       }
       case 'pasos':
         return `Paso a paso listo: ${this.ruta.value()?.pasos?.length ?? 0} iteraciones. Pulse Reproducir o Paso siguiente.`;
@@ -160,6 +168,35 @@ export class PaginaRutas {
   protected cambiarDestino(): void {
     this.enfoque = 'destino';
     void this.router.navigate(['/'], { queryParams: { origen: this.origen(), destino: this.destino() } });
+  }
+
+  /*
+   * Asa de la hoja (móvil): se puede arrastrar (abajo amplía el mapa, arriba muestra los
+   * detalles) o pulsar como botón, que es la alternativa para quien no puede arrastrar.
+   */
+  protected empezarArrastre(evento: PointerEvent): void {
+    this.inicioArrastre = evento.clientY;
+    this.huboArrastre = false;
+    (evento.currentTarget as HTMLElement).setPointerCapture(evento.pointerId);
+  }
+
+  protected terminarArrastre(evento: PointerEvent): void {
+    if (this.inicioArrastre === null) return;
+    const desplazamiento = evento.clientY - this.inicioArrastre;
+    this.inicioArrastre = null;
+    if (Math.abs(desplazamiento) >= UMBRAL_ARRASTRE) {
+      this.huboArrastre = true;
+      this.mapaAmpliado.set(desplazamiento > 0);
+    }
+  }
+
+  protected alternarHoja(): void {
+    // Después de un arrastre el navegador también envía un clic: ya se resolvió con el arrastre
+    if (this.huboArrastre) {
+      this.huboArrastre = false;
+      return;
+    }
+    this.mapaAmpliado.update((ampliado) => !ampliado);
   }
 
   protected reintentar(): void {

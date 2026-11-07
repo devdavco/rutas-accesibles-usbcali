@@ -1,11 +1,18 @@
-import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
+import { NgTemplateOutlet } from '@angular/common';
+import { ChangeDetectionStrategy, Component, computed, inject, input, output } from '@angular/core';
 import { RespuestaRuta } from '../../api/tipos';
-import { metros, numero, separarNombre } from '../../dominio/formato';
+import { metros, nombreVisible, numero } from '../../dominio/formato';
 import { recorridoTexto } from '../../dominio/recorrido-texto';
+import { Pantalla } from '../../servicios/pantalla';
 
-/** Ruta encontrada: distancia, costo y recorrido en texto (RF05). */
+/**
+ * Ruta encontrada: distancia, costo y recorrido en texto (RF05).
+ * En móvil el orden cambia: distancia destacada, recorrido y "Ver paso a paso" primero; el costo
+ * queda como dato secundario.
+ */
 @Component({
   selector: 'app-resultado',
+  imports: [NgTemplateOutlet],
   templateUrl: './resultado.html',
   styleUrl: './resultado.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -17,8 +24,9 @@ export class Resultado {
 
   protected readonly distancia = computed(() => metros(this.respuesta().distanciaM ?? 0));
   protected readonly costo = computed(() => numero(this.respuesta().costo ?? 0));
-  protected readonly desde = computed(() => separarNombre(this.respuesta().origen.nombre));
-  protected readonly hasta = computed(() => separarNombre(this.respuesta().destino.nombre));
+  protected readonly esMovil = inject(Pantalla).esMovil;
+  protected readonly desde = computed(() => nombreVisible(this.respuesta().origen.nombre));
+  protected readonly hasta = computed(() => nombreVisible(this.respuesta().destino.nombre));
   protected readonly indicaciones = computed(() => recorridoTexto(this.respuesta().segmentos));
 
   /** La nota explica por qué el costo coincide o no con la distancia. */

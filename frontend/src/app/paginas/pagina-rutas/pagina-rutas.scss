@@ -43,17 +43,51 @@
   }
 }
 
+// Asa de la hoja: botón arrastrable (solo móvil)
 .asa {
   display: none;
 
   @include q.movil {
-    display: block;
-    width: var(--ancho-asa);
-    height: var(--alto-asa);
-    margin-top: calc(-1 * var(--espacio-8));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--espacio-4);
     align-self: center;
-    border-radius: var(--radio-6);
-    background: var(--color-borde-control);
+    min-height: var(--area-tactil);
+    min-width: var(--area-tactil);
+    margin-top: calc(-1 * var(--espacio-12));
+    padding: 0 var(--espacio-16);
+    background: none;
+    border: none;
+    cursor: grab;
+    // El arrastre vertical mueve la hoja, no la página
+    touch-action: none;
+  }
+}
+
+.barra {
+  width: var(--ancho-asa);
+  height: var(--alto-asa);
+  border-radius: var(--radio-6);
+  background: var(--color-borde-control);
+}
+
+.texto-asa {
+  font-size: var(--texto-ayuda);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-primario);
+}
+
+// Enlace de administración al pie del panel: solo en móvil (en escritorio está en el encabezado)
+.pie-admin {
+  display: none;
+
+  @include q.movil {
+    display: inline-flex;
+    margin-top: var(--espacio-8);
+    color: var(--color-texto-secundario);
+    font-weight: var(--peso-normal);
   }
 }
 
@@ -68,6 +102,10 @@
 
     .mapa-bajo & {
       height: var(--alto-mapa-movil-pasos);
+    }
+
+    .mapa-ampliado & {
+      height: var(--alto-mapa-movil-ampliado);
     }
   }
 }

@@ -26,3 +26,5 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 CLAUDE.md
+# Logs y PID de scripts/levantar.sh
+logs/

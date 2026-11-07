@@ -20,7 +20,7 @@ describe('recorridoTexto', () => {
       'Tome la rampa 11,4 m.',
       'Continúe por el andén 70,8 m.',
       'Tome la rampa 10,2 m.',
-      'Avance hasta Edificio El Cedro (Entrada Lateral) 38,8 m.',
+      'Avance hasta El Cedro (entrada lateral) 38,8 m.',
     ]);
     expect(indicaciones.map((i) => i.etiqueta)).toEqual(['Plano', 'Rampa', 'Plano', 'Rampa', 'Plano']);
   });
@@ -39,8 +39,11 @@ describe('recorridoTexto', () => {
   });
 
   it('con un solo segmento indica desde dónde y hasta dónde', () => {
-    const [unico] = recorridoTexto([segmento('PLANO', 45.04, 'Entrada de Estudiantes (Parqueadero)', 'Edificio El Lago')]);
-    expect(frase(unico)).toBe('Desde Entrada de Estudiantes (Parqueadero), avance hasta Edificio El Lago 45,0 m.');
+    const [unico] = recorridoTexto([
+      segmento('PLANO', 45.04, 'Entrada de Estudiantes (Parqueadero)', 'Edificio El Lago (Entrada de Estudiantes)'),
+    ]);
+    // Los nombres usan el mismo formato que las etiquetas del mapa
+    expect(frase(unico)).toBe('Desde Entrada de Estudiantes (parqueadero), avance hasta El Lago (entrada de estudiantes) 45,0 m.');
   });
 
   it('una rampa al principio o al final también lleva el punto de partida o de llegada', () => {

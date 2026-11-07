@@ -45,3 +45,13 @@ cd backend
 node herramientas/generar-referencia-rutas.mjs                          # usa ../../USBCali_Accesible
 node herramientas/generar-referencia-rutas.mjs /ruta/a/USBCali_Accesible
 ```
+
+## copiar-plano.mjs
+
+Copia `plano_campus.png` del prototipo y sus cuatro esquinas de calibración (`js/datos.js`) a
+`frontend/public/plano/` (`plano_campus.png` y `calibracion.json`), que usa el mapa del frontend.
+
+```bash
+cd backend
+node herramientas/copiar-plano.mjs                          # usa ../../USBCali_Accesible
+```

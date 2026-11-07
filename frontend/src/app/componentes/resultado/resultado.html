@@ -1,28 +1,51 @@
-<div class="resultado">
-  <button type="button" class="enlace pequeno" (click)="nuevaConsulta.emit()">Nueva consulta</button>
-
-  <h2 id="titulo-panel" tabindex="-1">Ruta accesible encontrada</h2>
-
-  <dl class="trayecto">
-    <dt>Desde</dt>
-    <dd>{{ desde().principal }}@if (desde().detalle) { · {{ desde().detalle }}}</dd>
-    <dt>Hasta</dt>
-    <dd>{{ hasta().principal }}@if (hasta().detalle) { · {{ hasta().detalle }}}</dd>
-  </dl>
-
-  <dl class="datos">
-    <div class="dato">
-      <dt>Distancia</dt>
-      <dd>{{ distancia() }}</dd>
+@if (esMovil()) {
+  <div class="resultado movil">
+    <div class="encabezado-hoja">
+      <h2 id="titulo-panel" tabindex="-1">Ruta accesible encontrada</h2>
+      <p class="distancia-destacada">{{ distancia() }}</p>
+      <p class="trayecto-linea">
+        {{ desde() }} <span aria-hidden="true">→</span><span class="solo-lector">hasta</span> {{ hasta() }}
+      </p>
     </div>
-    <div class="dato">
-      <dt>Costo de la ruta</dt>
-      <dd>{{ costo() }}</dd>
-    </div>
-  </dl>
 
-  <p class="ayuda">{{ notaCosto() }}</p>
+    <ng-container [ngTemplateOutlet]="recorrido" />
 
+    <p class="ayuda costo-secundario">Costo de la ruta: {{ costo() }}. {{ notaCosto() }}</p>
+
+    <button type="button" class="enlace pequeno" (click)="nuevaConsulta.emit()">Nueva consulta</button>
+  </div>
+} @else {
+  <div class="resultado">
+    <button type="button" class="enlace pequeno" (click)="nuevaConsulta.emit()">Nueva consulta</button>
+
+    <h2 id="titulo-panel" tabindex="-1">Ruta accesible encontrada</h2>
+
+    <dl class="trayecto">
+      <dt>Desde</dt>
+      <dd>{{ desde() }}</dd>
+      <dt>Hasta</dt>
+      <dd>{{ hasta() }}</dd>
+    </dl>
+
+    <dl class="datos">
+      <div class="dato">
+        <dt>Distancia</dt>
+        <dd>{{ distancia() }}</dd>
+      </div>
+      <div class="dato">
+        <dt>Costo de la ruta</dt>
+        <dd>{{ costo() }}</dd>
+      </div>
+    </dl>
+
+    <p class="ayuda">{{ notaCosto() }}</p>
+
+    <ng-container [ngTemplateOutlet]="recorrido" />
+  </div>
+}
+
+<!-- Recorrido y "Ver paso a paso": iguales en las dos distribuciones -->
+<ng-template #recorrido>
   @if (indicaciones().length > 0) {
     <h3>Recorrido</h3>
     <ol class="recorrido">
@@ -40,4 +63,4 @@
     </ol>
     <button type="button" class="btn secundario" (click)="verPasos.emit()">Ver paso a paso</button>
   }
-</div>
+</ng-template>

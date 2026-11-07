@@ -35,11 +35,14 @@ export function separarNombre(nombre: string): NombreSeparado {
 }
 
 /**
- * Texto corto para las etiquetas del mapa:
- * ("Edificio El Cedro (Entrada Lateral)", "El Cedro") → "El Cedro, entrada lateral".
+ * Nombre de un punto tal como se muestra en toda la interfaz (etiquetas del mapa, hoja,
+ * recorrido y paso a paso), para que el mismo punto se lea siempre igual:
+ * "Edificio El Cedro (Entrada Lateral)" → "El Cedro (entrada lateral)";
+ * "Entrada de Estudiantes (Parqueadero)" → "Entrada de Estudiantes (parqueadero)";
+ * "Biblioteca" → "Biblioteca".
  */
-export function nombreCorto(nombre: string, edificio: string | null): string {
+export function nombreVisible(nombre: string): string {
   const { principal, detalle } = separarNombre(nombre);
-  const base = edificio ?? principal;
-  return detalle ? `${base}, ${detalle.toLocaleLowerCase('es-CO')}` : base;
+  const base = principal.replace(/^Edificio\s+/, '');
+  return detalle ? `${base} (${detalle.toLocaleLowerCase('es-CO')})` : base;
 }

@@ -27,18 +27,39 @@
   color: var(--color-texto-secundario);
 }
 
+.controles,
+.zoom {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-8);
+}
+
 .controles {
   position: absolute;
   top: var(--espacio-16);
   right: var(--espacio-16);
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-8);
 
+  // Móvil: Acercar y Alejar como un par unido; "Solo plano" separado debajo
   @include q.movil {
     top: var(--espacio-8);
     right: var(--espacio-8);
-    flex-direction: row;
+  }
+}
+
+.zoom {
+  @include q.movil {
+    gap: 0;
+
+    .boton-mapa:first-child {
+      border-bottom-left-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    .boton-mapa:last-child {
+      border-top: none;
+      border-top-left-radius: 0;
+      border-top-right-radius: 0;
+    }
   }
 }
 
@@ -61,6 +82,7 @@
 
   @include q.movil {
     padding: 0 var(--espacio-12);
+    font-size: var(--texto-ayuda);
   }
 }
 
@@ -130,6 +152,10 @@
   text-align: right;
 
   a {
+    // Área mínima de 24 px de alto (WCAG 2.5.8): los tres enlaces están muy juntos
+    display: inline-block;
+    min-height: var(--espacio-24);
+    line-height: var(--espacio-24);
     color: inherit;
     text-decoration: underline;
     text-underline-offset: var(--separacion-subrayado);
@@ -137,8 +163,13 @@
     white-space: nowrap;
   }
 
-  // La hoja inferior sube sobre el borde del mapa: la atribución queda por encima de ella
+  // Móvil: una sola línea compacta, por encima del borde de la hoja inferior
   @include q.movil {
     bottom: var(--radio-16);
+    white-space: nowrap;
+
+    .largo {
+      display: none;
+    }
   }
 }

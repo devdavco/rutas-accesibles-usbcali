@@ -73,6 +73,8 @@
   --relleno-panel-arriba-resultado: 22px;
   --alto-mapa-movil: 320px;
   --alto-mapa-movil-pasos: 300px;
+  --alto-hoja-asomada: 150px; /* con el mapa ampliado, lo que se ve de la hoja */
+  --alto-mapa-movil-ampliado: calc(100dvh - var(--alto-encabezado-movil) - var(--alto-hoja-asomada));
   --ancho-asa: 40px;
   --alto-asa: 5px;
   --alto-boton-pasos: 44px;
@@ -96,8 +98,10 @@
   --mapa-punto-radio: 5px;
   --mapa-punto-radio-actual: 8px;
   --mapa-punto-borde: 2px;
-  --mapa-margen-movil-arriba: 100px; /* deja libre la fila de botones y la etiqueta de destino */
-  --mapa-margen-movil-abajo: 90px; /* atribución + borde de la hoja + etiqueta de origen */
-  --mapa-margen-movil-lados: 30px;
-  --mapa-ancho-movil: 767px; /* igual al punto de quiebre de styles/_quiebres.scss */
+  /* Encuadre de la ruta en móvil: márgenes para que nada tape origen, destino ni sus etiquetas */
+  --mapa-margen-movil-arriba: 64px; /* etiqueta de dos líneas sobre un extremo de la ruta */
+  --mapa-margen-movil-abajo: 88px; /* etiqueta bajo un extremo + atribución + borde de la hoja */
+  --mapa-margen-movil-izquierda: 24px;
+  --mapa-margen-movil-derecha: 112px; /* columna de controles del mapa */
+  --ancho-max-etiqueta-movil: 170px; /* cabe dentro del área encuadrada hacia cualquier lado */
 }

@@ -1,7 +1,25 @@
-<div class="cuerpo" [class.ancho-pasos]="vista() === 'pasos'" [class.mapa-bajo]="vista() === 'pasos'">
+<div
+  class="cuerpo"
+  [class.ancho-pasos]="vista() === 'pasos'"
+  [class.mapa-bajo]="vista() === 'pasos'"
+  [class.mapa-ampliado]="mapaAmpliado()"
+>
   <!-- El panel va primero en el documento (orden de foco); en móvil se dibuja debajo del mapa -->
   <section class="panel" aria-label="Consulta de rutas">
-    <div class="asa" aria-hidden="true"></div>
+    <!-- Asa de la hoja (solo móvil): arrastrable y, a la vez, botón con texto -->
+    <button
+      type="button"
+      class="asa"
+      aria-controls="zona-mapa"
+      [attr.aria-expanded]="mapaAmpliado()"
+      (pointerdown)="empezarArrastre($event)"
+      (pointerup)="terminarArrastre($event)"
+      (pointercancel)="terminarArrastre($event)"
+      (click)="alternarHoja()"
+    >
+      <span class="barra" aria-hidden="true"></span>
+      <span class="texto-asa">{{ mapaAmpliado() ? 'Ver detalles' : 'Ver más mapa' }}</span>
+    </button>
 
     @switch (vista()) {
       @case ('cargando') {
@@ -45,9 +63,12 @@
     }
 
     <p class="solo-lector" aria-live="polite">{{ anuncio() }}</p>
+
+    <!-- En móvil el acceso de administración va aquí, discreto, en lugar del encabezado -->
+    <a class="enlace pequeno pie-admin" routerLink="/admin">Ingreso administrador</a>
   </section>
 
-  <div class="zona-mapa">
+  <div class="zona-mapa" id="zona-mapa">
     <app-mapa [vista]="vistaMapa()" [grafo]="grafo.value()" [ruta]="ruta.value()" [paso]="pasoActual()" />
   </div>
 </div>

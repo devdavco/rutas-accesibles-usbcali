@@ -27,7 +27,18 @@ cp .env.example .env   # complete POSTGRES_USER y POSTGRES_PASSWORD
 docker compose up -d
 ```
 
-## Levantar todo para probar
+## Levantar todo con un comando
+
+```bash
+./scripts/levantar.sh   # base de datos, los tres servicios y el frontend (http://localhost:4200)
+./scripts/detener.sh    # detiene todo; la base de datos conserva sus datos
+```
+
+`levantar.sh` carga `infra/.env`, compila los servicios y los arranca en orden (servicio-negocio,
+servicio-grafos, gateway), esperando a que cada uno responda en `/actuator/health`. Los logs y los
+PID quedan en `logs/`.
+
+## Levantar todo para probar (paso a paso, a mano)
 
 El orden importa: servicio-grafos lee el grafo de servicio-negocio en cada cálculo, y el gateway
 reenvía a los dos. Cada servicio va en su propia terminal, desde `backend/`.
@@ -75,8 +86,13 @@ curl --compressed 'http://localhost:8080/api/rutas?origen=1&destino=2&pasos=true
 ```bash
 cd frontend
 npm ci
-npm start        # http://localhost:4200
+npm start        # http://localhost:4200 (usa el gateway en http://localhost:8080)
 ```
+
+Interfaz del usuario final: consulta, resultado, paso a paso de Dijkstra y caso sin ruta. El estado
+queda en la URL (`/ruta?origen=1&destino=2&modo=pasos`). El mapa usa MapLibre GL JS con
+OpenFreeMap y el plano del campus (`frontend/public/plano/`, copiado del prototipo con
+`node backend/herramientas/copiar-plano.mjs`). Los estilos usan los tokens de `docs/diseno/tokens.css`.
 
 ## Compilar y probar
 

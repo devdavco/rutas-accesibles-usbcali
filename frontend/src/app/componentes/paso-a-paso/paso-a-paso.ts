@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, effect, input, model, output, signal } from '@angular/core';
 import { PasoDijkstra, RespuestaRuta } from '../../api/tipos';
 import { ETIQUETA_ESTADO_TABLA, EstadoPunto } from '../../dominio/estado-punto';
-import { numero, porcentaje } from '../../dominio/formato';
+import { nombreVisible, numero, porcentaje } from '../../dominio/formato';
 import { filasDelPaso } from '../../dominio/tabla-pasos';
 
 /** Filas de la tabla que se muestran antes de "Mostrar todos". */
@@ -54,6 +54,7 @@ export class PasoAPaso {
   protected readonly etiquetaEstado = ETIQUETA_ESTADO_TABLA;
   protected readonly colorEstado = VARIABLE_ESTADO;
   protected readonly numero = numero;
+  protected readonly nombreVisible = nombreVisible;
 
   constructor() {
     // Reproducción: avanza un paso en cada intervalo mientras esté activa

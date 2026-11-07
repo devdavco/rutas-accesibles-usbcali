@@ -285,6 +285,17 @@ h3 {
 
   &.origen { background: var(--color-primario); }
   &.destino { background: var(--color-texto); }
+
+  // Móvil: el nombre completo cabe en dos líneas sin salirse del mapa
+  @include q.movil {
+    &.origen,
+    &.destino {
+      max-width: var(--ancho-max-etiqueta-movil);
+      white-space: normal;
+      text-align: center;
+      padding: var(--espacio-4) var(--espacio-12);
+    }
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -36,6 +36,21 @@ class RutasControllerTest extends PruebaConNegocioSimulado {
 	}
 
 	@Test
+	void devuelveElGrafoCompletoParaElMapa() throws Exception {
+		mockMvc.perform(get("/api/rutas/grafo"))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.puntos", hasSize(94)))
+			// Incluye el tramo con escaleras: el mapa puede mostrarlo como excluido
+			.andExpect(jsonPath("$.tramos", hasSize(107)))
+			.andExpect(jsonPath("$.tramos[?(@.condicion == 'ESCALERAS')]", hasSize(1)))
+			.andExpect(jsonPath("$.puntos[0].nombre").value("Entrada Principal"))
+			.andExpect(jsonPath("$.puntos[0].lat").value(closeTo(3.34252136, 1e-8)))
+			.andExpect(jsonPath("$.tramos[0].puntoInicialId").value(4))
+			// Sin longitudes: el mapa no calcula nada
+			.andExpect(jsonPath("$.tramos[0].longitudM").doesNotExist());
+	}
+
+	@Test
 	void rutaSinPasos() throws Exception {
 		String cuerpo = mockMvc.perform(get("/api/rutas").param("origen", "1").param("destino", "2"))
 			.andExpect(status().isOk())

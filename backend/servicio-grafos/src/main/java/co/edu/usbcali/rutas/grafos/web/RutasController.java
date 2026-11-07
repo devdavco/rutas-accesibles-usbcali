@@ -1,5 +1,6 @@
 package co.edu.usbcali.rutas.grafos.web;
 
+import co.edu.usbcali.rutas.grafos.respuesta.GrafoVisual;
 import co.edu.usbcali.rutas.grafos.respuesta.PuntoSeleccionable;
 import co.edu.usbcali.rutas.grafos.respuesta.RespuestaRuta;
 import co.edu.usbcali.rutas.grafos.servicio.ServicioRutas;
@@ -24,6 +25,12 @@ public class RutasController {
 	@GetMapping("/puntos")
 	public List<PuntoSeleccionable> puntos() {
 		return servicioRutas.listarPuntosSeleccionables();
+	}
+
+	/** Grafo completo para el mapa (solo visualización). */
+	@GetMapping("/grafo")
+	public GrafoVisual grafo() {
+		return servicioRutas.grafoVisual();
 	}
 
 	/** Ruta accesible de menor costo; con pasos=true incluye los pasos de Dijkstra. */
