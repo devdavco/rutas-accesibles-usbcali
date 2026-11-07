@@ -5,6 +5,10 @@ on:
   push:
     branches: [main]
 
+# Mínimo privilegio para todos los jobs; publicar-imagenes agrega solo lo que necesita
+permissions:
+  contents: read
+
 jobs:
   backend:
     runs-on: ubuntu-latest
@@ -38,3 +42,139 @@ jobs:
         run: npm run test:ci
       - name: Compilación de producción
         run: npx ng build --configuration production
+
+  # Publica las 4 imágenes en Amazon ECR, con el SHA del commit como etiqueta.
+  # Sin llaves de AWS: GitHub emite un token OIDC y AWS lo cambia por credenciales temporales del
+  # rol github-actions-ecr-push, que solo confía en la rama main de este repositorio.
+  publicar-imagenes:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    # Dos pushes seguidos no compiten por las mismas etiquetas: el segundo espera al primero
+    concurrency:
+      group: publicar-imagenes-${{ github.ref }}
+      cancel-in-progress: false
+    permissions:
+      id-token: write # pedir el token OIDC de GitHub
+      contents: read
+    env:
+      AWS_REGION: us-east-1
+      PREFIJO: rutas-accesibles
+      ETIQUETA: ${{ github.sha }}
+      IMAGENES: servicio-negocio servicio-grafos gateway frontend
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Credenciales temporales de AWS (OIDC)
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          role-to-assume: arn:aws:iam::248033171214:role/github-actions-ecr-push
+          role-session-name: rutas-accesibles-ci-${{ github.run_id }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Ingreso a ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - uses: docker/setup-buildx-action@v4
+
+      # Los tags son inmutables: si el workflow se vuelve a ejecutar para el mismo commit, las
+      # imágenes ya publicadas se saltan. Solo ImageNotFoundException significa "no existe";
+      # cualquier otro error (permisos, repositorio inexistente…) detiene el job.
+      - name: ¿Ya publicadas?
+        id: existentes
+        run: |
+          for imagen in $IMAGENES; do
+            if salida=$(aws ecr describe-images --repository-name "$PREFIJO/$imagen" \
+                --image-ids imageTag="$ETIQUETA" 2>&1); then
+              echo "$imagen ya está publicada con la etiqueta $ETIQUETA: se salta"
+              echo "${imagen//-/_}=si" >> "$GITHUB_OUTPUT"
+            elif grep -q ImageNotFoundException <<< "$salida"; then
+              echo "${imagen//-/_}=no" >> "$GITHUB_OUTPUT"
+            else
+              echo "::error title=ECR ($imagen)::$salida"
+              exit 1
+            fi
+          done
+
+      - name: servicio-negocio
+        if: steps.existentes.outputs.servicio_negocio == 'no'
+        uses: docker/build-push-action@v7
+        with:
+          context: backend
+          file: backend/servicio-negocio/Dockerfile
+          platforms: linux/amd64
+          push: true
+          provenance: false
+          tags: ${{ steps.ecr.outputs.registry }}/${{ env.PREFIJO }}/servicio-negocio:${{ env.ETIQUETA }}
+          cache-from: type=gha,scope=servicio-negocio
+          cache-to: type=gha,mode=max,scope=servicio-negocio
+
+      - name: servicio-grafos
+        if: steps.existentes.outputs.servicio_grafos == 'no'
+        uses: docker/build-push-action@v7
+        with:
+          context: backend
+          file: backend/servicio-grafos/Dockerfile
+          platforms: linux/amd64
+          push: true
+          provenance: false
+          tags: ${{ steps.ecr.outputs.registry }}/${{ env.PREFIJO }}/servicio-grafos:${{ env.ETIQUETA }}
+          cache-from: type=gha,scope=servicio-grafos
+          cache-to: type=gha,mode=max,scope=servicio-grafos
+
+      - name: gateway
+        if: steps.existentes.outputs.gateway == 'no'
+        uses: docker/build-push-action@v7
+        with:
+          context: backend
+          file: backend/gateway/Dockerfile
+          platforms: linux/amd64
+          push: true
+          provenance: false
+          tags: ${{ steps.ecr.outputs.registry }}/${{ env.PREFIJO }}/gateway:${{ env.ETIQUETA }}
+          cache-from: type=gha,scope=gateway
+          cache-to: type=gha,mode=max,scope=gateway
+
+      - name: frontend (Caddy + Angular)
+        if: steps.existentes.outputs.frontend == 'no'
+        uses: docker/build-push-action@v7
+        with:
+          context: frontend
+          file: frontend/Dockerfile
+          platforms: linux/amd64
+          push: true
+          provenance: false
+          tags: ${{ steps.ecr.outputs.registry }}/${{ env.PREFIJO }}/frontend:${{ env.ETIQUETA }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+
+      # Comprueba en ECR que las 4 imágenes existen con la etiqueta y escribe el resumen del job
+      - name: Verificar y resumir
+        env:
+          REGISTRO: ${{ steps.ecr.outputs.registry }}
+          EXISTENTES: ${{ toJSON(steps.existentes.outputs) }}
+        run: |
+          {
+            echo "## Imágenes publicadas en ECR"
+            echo
+            echo "Etiqueta: \`$ETIQUETA\`"
+            echo
+            echo "| Imagen | URI | Digest | Estado |"
+            echo "|---|---|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          for imagen in $IMAGENES; do
+            digest=$(aws ecr describe-images --repository-name "$PREFIJO/$imagen" \
+              --image-ids imageTag="$ETIQUETA" --query 'imageDetails[0].imageDigest' --output text)
+            ya=$(jq -r --arg k "${imagen//-/_}" '.[$k]' <<< "$EXISTENTES")
+            estado=$([[ "$ya" == si ]] && echo "ya existía" || echo "publicada")
+            echo "| $imagen | \`$REGISTRO/$PREFIJO/$imagen:$ETIQUETA\` | \`${digest:0:19}…\` | $estado |" >> "$GITHUB_STEP_SUMMARY"
+          done
+          {
+            echo
+            echo "Para desplegar esta versión, actualice la etiqueta en SSM:"
+            echo
+            echo "\`\`\`bash"
+            echo "aws ssm put-parameter --name /rutas-accesibles/prod/ETIQUETA --value $ETIQUETA --overwrite"
+            echo "\`\`\`"
+          } >> "$GITHUB_STEP_SUMMARY"

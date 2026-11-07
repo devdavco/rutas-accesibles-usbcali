@@ -13,7 +13,10 @@ set -euo pipefail
 
 RAIZ="$(cd "$(dirname "$0")/.." && pwd)"
 PROYECTO=rutas-prod-local
-REGISTRO=rutas-accesibles
+# Las imágenes se llaman como en ECR: ${REGISTRO}/rutas-accesibles/<servicio>:${ETIQUETA}.
+# REGISTRO=localhost: Docker las toma como locales y no intenta descargarlas
+REGISTRO=localhost
+PREFIJO=rutas-accesibles
 ETIQUETA=local
 ENTORNO="$RAIZ/logs/prod-local.env"
 HTTPS=false MANTENER=false CONSTRUIR=true
@@ -42,14 +45,14 @@ comprobar() { # comprobar "descripción" comando...
 
 # --- 1. Imágenes -------------------------------------------------------------------------
 if $CONSTRUIR; then
-  echo "1/4 Construyendo imágenes ($REGISTRO/*:$ETIQUETA, linux/amd64)"
+  echo "1/4 Construyendo imágenes ($REGISTRO/$PREFIJO/*:$ETIQUETA, linux/amd64)"
   for servicio in servicio-negocio servicio-grafos gateway; do
     echo "  · $servicio"
-    docker build -q --platform linux/amd64 -t "$REGISTRO/$servicio:$ETIQUETA" \
+    docker build -q --platform linux/amd64 -t "$REGISTRO/$PREFIJO/$servicio:$ETIQUETA" \
       -f "$RAIZ/backend/$servicio/Dockerfile" "$RAIZ/backend" > /dev/null
   done
   echo "  · frontend (Caddy)"
-  docker build -q --platform linux/amd64 -t "$REGISTRO/frontend:$ETIQUETA" "$RAIZ/frontend" > /dev/null
+  docker build -q --platform linux/amd64 -t "$REGISTRO/$PREFIJO/frontend:$ETIQUETA" "$RAIZ/frontend" > /dev/null
 else
   echo "1/4 Usando las imágenes ya construidas"
 fi
@@ -73,6 +76,9 @@ ADMIN_CONTRASENA='$(openssl rand -hex 12)'
 EOF
   )
 fi
+# Entornos generados antes con la convención anterior (REGISTRO=rutas-accesibles): se corrige
+# solo esa línea, sin tocar los secretos (PostgreSQL ya fijó su contraseña)
+sed -i "s|^REGISTRO=.*|REGISTRO=$REGISTRO|" "$ENTORNO"
 # DOMINIO y ORIGEN_PUBLICO dependen del modo (se pasan por el entorno, que tiene prioridad)
 if $HTTPS; then
   export DOMINIO=localhost ORIGEN_PUBLICO=https://localhost
@@ -130,7 +136,7 @@ comprobar "index.html sin caché (Cache-Control: no-cache)" \
 
 # --- 5. Tamaños y memoria ----------------------------------------------------------------
 echo "4/4 Imágenes y memoria"
-docker image ls --format 'table {{.Repository}}:{{.Tag}}\t{{.Size}}' | grep -E "^(REPOSITORY|$REGISTRO/)" || true
+docker image ls --format 'table {{.Repository}}:{{.Tag}}\t{{.Size}}' | grep -E "^(REPOSITORY|$REGISTRO/$PREFIJO/)" || true
 docker image ls --format '{{.Repository}}:{{.Tag}}\t{{.Size}}' postgis/postgis:18-3.7 || true
 echo
 docker stats --no-stream --format 'table {{.Name}}\t{{.MemUsage}}\t{{.MemPerc}}\t{{.CPUPerc}}' \

@@ -8,8 +8,8 @@
 # Cada contenedor recibe solo sus variables.
 #
 # Memoria (límites pensados para 2 GB; ver docs/despliegue.md):
-#   postgis 320M · servicio-negocio 448M · servicio-grafos 288M · gateway 288M · caddy 64M
-#   = 1.408 MB, y quedan unos 600 MB para el sistema operativo y Docker.
+#   postgis 320M · servicio-negocio 448M · servicio-grafos 288M · gateway 288M · caddy 96M
+#   = 1.440 MB, y quedan unos 600 MB para el sistema operativo y Docker.
 
 name: rutas-accesibles
 
@@ -34,7 +34,7 @@ services:
     networks: [interna]
 
   servicio-negocio:
-    image: ${REGISTRO}/servicio-negocio:${ETIQUETA}
+    image: ${REGISTRO}/rutas-accesibles/servicio-negocio:${ETIQUETA}
     restart: unless-stopped
     environment:
       DB_HOST: postgis
@@ -51,7 +51,7 @@ services:
     networks: [interna]
 
   servicio-grafos:
-    image: ${REGISTRO}/servicio-grafos:${ETIQUETA}
+    image: ${REGISTRO}/rutas-accesibles/servicio-grafos:${ETIQUETA}
     restart: unless-stopped
     environment:
       NEGOCIO_URL: http://servicio-negocio:8081
@@ -62,7 +62,7 @@ services:
     networks: [interna]
 
   gateway:
-    image: ${REGISTRO}/gateway:${ETIQUETA}
+    image: ${REGISTRO}/rutas-accesibles/gateway:${ETIQUETA}
     restart: unless-stopped
     environment:
       NEGOCIO_URL: http://servicio-negocio:8081
@@ -77,7 +77,7 @@ services:
     networks: [interna]
 
   caddy:
-    image: ${REGISTRO}/frontend:${ETIQUETA}
+    image: ${REGISTRO}/rutas-accesibles/frontend:${ETIQUETA}
     restart: unless-stopped
     environment:
       # Sin dominio, HTTP en el puerto 80; con dominio, HTTPS automático (Let's Encrypt)
@@ -92,7 +92,8 @@ services:
     depends_on:
       gateway:
         condition: service_healthy
-    mem_limit: 64m
+    # Incluye la caché de archivos que el kernel le cuenta al servir el frontend (≈ 54 MiB medidos)
+    mem_limit: 96m
     networks: [interna]
 
 networks:

@@ -46,7 +46,7 @@ enruta `/api/admin/**` y `/api/rutas/**`.
 | `frontend/.dockerignore` | Deja fuera `node_modules`, `dist`, `.angular` y `.env` |
 | `frontend/Caddyfile` | Sitio `{$DOMINIO}`, proxy de `/api/*`, fallback de rutas de Angular, caché, compresión y encabezados de seguridad |
 | `backend/*/src/main/resources/application-prod.yml` | Perfil `prod`: logs sin colores, Actuator solo `health`, errores sin detalles internos, pocos hilos; en el gateway, `forward-headers-strategy: framework` |
-| `infra/docker-compose.prod.yml` | Los cinco servicios, red interna, volúmenes, salud y orden de arranque, límites de memoria. Imágenes `${REGISTRO}/<servicio>:${ETIQUETA}` |
+| `infra/docker-compose.prod.yml` | Los cinco servicios, red interna, volúmenes, salud y orden de arranque, límites de memoria. Imágenes `${REGISTRO}/rutas-accesibles/<servicio>:${ETIQUETA}` (`REGISTRO` es solo el host del registro) |
 | `infra/.env.prod.example` | Variables que necesita la composición |
 | `infra/cargar-secretos.sh` | Genera `infra/.env.prod` (permisos 600) desde SSM Parameter Store |
 | `scripts/probar-prod-local.sh` | Construye las imágenes, levanta la composición y la verifica a través de Caddy |
@@ -69,8 +69,12 @@ enruta `/api/admin/**` y `/api/rutas/**`.
   de inmediato; los archivos con hash en el nombre, un año (`immutable`).
 - **Imágenes x86 (`linux/amd64`)**, la arquitectura del equipo de construcción y de la t3.small.
 - **Constructor de Docker.** Los Dockerfiles no usan funciones exclusivas de BuildKit, así que
-  funcionan con el constructor heredado (el de este equipo). Se recomienda instalar
-  `docker-buildx` antes de publicar en ECR (`sudo apt install docker-buildx`).
+  funcionan con el constructor heredado (el de este equipo) y con BuildKit (el de GitHub Actions,
+  que es quien publica en ECR).
+- **Nombres de imagen.** Los mismos en todas partes: `${REGISTRO}/rutas-accesibles/<servicio>:${ETIQUETA}`
+  con `<servicio>` ∈ {`servicio-negocio`, `servicio-grafos`, `gateway`, `frontend`}.
+  En ECR, `REGISTRO=248033171214.dkr.ecr.us-east-1.amazonaws.com` y `ETIQUETA` = SHA del commit;
+  en la prueba local, `REGISTRO=localhost` y `ETIQUETA=local`.
 
 ## Memoria (t3.small, 2 GB)
 
@@ -80,8 +84,12 @@ enruta `/api/admin/**` y `/api/rutas/**`.
 | servicio-negocio | 448 MB | 291 MiB | 318 MiB | `MaxRAMPercentage=60` (heap ≤ 269 MB), Hikari 5 conexiones |
 | servicio-grafos | 288 MB | 146 MiB | 163 MiB | `MaxRAMPercentage=55` (heap ≤ 158 MB) |
 | gateway | 288 MB | 159 MiB | 188 MiB | `MaxRAMPercentage=55` (heap ≤ 158 MB) |
-| caddy | 64 MB | 14 MiB | 22 MiB | — |
-| **Total** | **1.408 MB** | **≈ 680 MiB** | **≈ 730 MiB** | |
+| caddy | 96 MB | 14–54 MiB† | 22 MiB | — |
+| **Total** | **1.440 MB** | **≈ 680 MiB** | **≈ 730 MiB** | |
+
+† Caddy mide 14 MiB recién iniciado y hasta 54 MiB después de servir el frontend: la diferencia
+es caché de archivos que el kernel le cuenta al contenedor (recuperable). Por eso su límite es
+96 MB y no 64.
 
 \* 400 rutas con pasos de Dijkstra y 200 lecturas del API de administración, 8 en paralelo, por
 HTTPS a través de Caddy. Sin reinicios ni OOM.
@@ -93,9 +101,10 @@ Recomendación para la instancia: **1 GB de swap** como colchón (no reemplaza l
 
 ## Secretos (SSM Parameter Store)
 
-Parámetros bajo `/rutas-accesibles/prod/` (SecureString para los secretos): `REGISTRO`,
-`ETIQUETA`, `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `JWT_SECRETO`, `ADMIN_CORREO`,
-`ADMIN_CONTRASENA` y, opcionales, `DOMINIO`, `ORIGEN_PUBLICO`, `PUERTO_HTTP`, `PUERTO_HTTPS`.
+Parámetros bajo `/rutas-accesibles/prod/` (SecureString para los secretos): `REGISTRO` (solo el
+host del registro), `ETIQUETA` (SHA publicado), `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`,
+`JWT_SECRETO`, `ADMIN_CORREO`, `ADMIN_CONTRASENA` y, opcionales, `DOMINIO`, `ORIGEN_PUBLICO`,
+`PUERTO_HTTP`, `PUERTO_HTTPS`.
 
 ```bash
 infra/cargar-secretos.sh                         # → infra/.env.prod (600)
@@ -119,7 +128,7 @@ scripts/probar-prod-local.sh --sin-construir  # reutiliza las imágenes ya const
 
 El script:
 
-1. Construye `rutas-accesibles/{servicio-negocio,servicio-grafos,gateway,frontend}:local`.
+1. Construye `localhost/rutas-accesibles/{servicio-negocio,servicio-grafos,gateway,frontend}:local` (los mismos nombres que en ECR, con `REGISTRO=localhost`).
 2. Genera una vez `logs/prod-local.env` con secretos aleatorios (se reutiliza: PostgreSQL fija la
    contraseña al crear su volumen).
 3. Levanta la composición como proyecto `rutas-prod-local` (no toca el entorno de desarrollo).
@@ -140,7 +149,68 @@ Requiere el puerto 80 (y 443 con `--https`) libre. El desarrollo diario sigue co
   `default-src 'self'; connect-src 'self' https://tiles.openfreemap.org; img-src 'self' data: blob:; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'`.
 - **Copias de seguridad** del volumen `datos-postgis` (por ejemplo, `pg_dump` diario a S3).
 
-## Pasos en AWS (pendiente)
+## Pasos en AWS
 
-Se completará en la etapa de despliegue: ECR, instancia EC2 t3.small, rol con acceso a SSM y ECR,
-grupo de seguridad (80/443), DNS y script de despliegue.
+Configurado en la consola de AWS (cuenta 248033171214, región us-east-1). Aquí no hay ningún valor
+secreto: los secretos viven solo en SSM Parameter Store.
+
+### Cuenta
+- **MFA** activado en el usuario raíz; la raíz no se usa para el trabajo diario.
+- **IAM Identity Center** para el acceso diario a la consola y a la CLI.
+- **Presupuesto** de USD 25 al mes con alertas por correo.
+
+### Amazon ECR
+- Registro `248033171214.dkr.ecr.us-east-1.amazonaws.com` con 4 repositorios:
+  `rutas-accesibles/servicio-negocio`, `rutas-accesibles/servicio-grafos`,
+  `rutas-accesibles/gateway` y `rutas-accesibles/frontend`.
+- **Etiquetas inmutables**: una etiqueta (el SHA del commit) siempre apunta a la misma imagen; no
+  hay `latest`.
+- **Escaneo al subir** (vulnerabilidades conocidas de la imagen).
+- **Lifecycle policy** para borrar imágenes antiguas y no acumular almacenamiento.
+
+### Publicación desde GitHub Actions (OIDC, sin llaves)
+- **Proveedor de identidad OIDC** `token.actions.githubusercontent.com` (audiencia `sts.amazonaws.com`).
+- **Rol `github-actions-ecr-push`**:
+  - trust policy: solo lo puede asumir un token OIDC de
+    `repo:devdavco/rutas-accesibles-usbcali:ref:refs/heads/main` (ni ramas, ni pull requests,
+    ni otros repositorios);
+  - política en línea `subir-imagenes-ecr`: obtener el token de ECR, subir capas e imágenes y
+    leerlas (`ecr:DescribeImages`, `ecr:BatchGetImage`) en los 4 repositorios.
+- **Workflow** (`.github/workflows/ci.yml`, job `publicar-imagenes`): corre solo en push a `main`,
+  después de que pasan las pruebas del backend y del frontend; construye las 4 imágenes
+  (`linux/amd64`, caché de GitHub Actions por imagen) y las sube con la etiqueta `github.sha`.
+  Si el workflow se repite para el mismo commit, se salta lo ya publicado (las etiquetas son
+  inmutables). El resumen del job muestra la etiqueta y los 4 URIs.
+
+### Instancia
+- **Rol de instancia `ec2-rutas-accesibles`**:
+  - `AmazonEC2ContainerRegistryPullOnly`: descargar las imágenes de ECR;
+  - `AmazonSSMManagedInstanceCore`: Session Manager (consola sin SSH);
+  - política en línea `leer-parametros-prod`: leer y descifrar solo `/rutas-accesibles/prod/*`.
+- **Parámetros** en `/rutas-accesibles/prod/` (8):
+
+  | Parámetro | Tipo |
+  |---|---|
+  | `REGISTRO` | String |
+  | `ETIQUETA` | String |
+  | `POSTGRES_DB` | String |
+  | `POSTGRES_USER` | String |
+  | `POSTGRES_PASSWORD` | SecureString |
+  | `JWT_SECRETO` | SecureString |
+  | `ADMIN_CORREO` | String |
+  | `ADMIN_CONTRASENA` | SecureString |
+
+- **Grupo de seguridad `rutas-accesibles-web`**: entrada solo por 80 y 443. Sin SSH: el acceso
+  administrativo es por Session Manager.
+- **EC2 t3.small** (x86, 2 vCPU, 2 GB) con **Amazon Linux 2023**, **IMDSv2** obligatorio y disco
+  **gp3 de 20 GB cifrado**.
+- **User data**: instala Docker y Docker Compose, y crea **1 GB de swap** con `dd`.
+- **IP elástica** `100.49.209.43`.
+
+### Flujo de una versión nueva
+1. Push a `main` → CI (pruebas) → `publicar-imagenes` sube las 4 imágenes con el SHA.
+2. Actualizar la etiqueta en SSM (el comando aparece en el resumen del job):
+   `aws ssm put-parameter --name /rutas-accesibles/prod/ETIQUETA --value <SHA> --overwrite`.
+3. En la instancia (Session Manager): `infra/cargar-secretos.sh` y
+   `docker compose -f infra/docker-compose.prod.yml --env-file infra/.env.prod up -d`.
+   El script de despliegue que automatiza este paso queda para la etapa siguiente.
